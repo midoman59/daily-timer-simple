@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests unitaires
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: npx ng test --watch=false --browsers=ChromeHeadlessCI
+
+      - name: Build de production
+        run: npx ng build --configuration production --base-href "/${{ github.event.repository.name }}/"

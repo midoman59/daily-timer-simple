@@ -1,0 +1,41 @@
+<main class="page">
+  <h1 class="page-title" tabindex="-1">Créer votre équipe</h1>
+
+  <form class="card" novalidate>
+    <div class="field">
+      <label class="field-label" for="team-name">Nom d'équipe</label>
+      <input
+        id="team-name"
+        class="field-input"
+        type="text"
+        autocomplete="off"
+        [formControl]="name"
+        [attr.aria-invalid]="errorOf(name) ? 'true' : null"
+        [attr.aria-describedby]="errorOf(name) ? 'team-name-error' : null"
+      />
+      @if (errorOf(name); as message) {
+        <p id="team-name-error" class="field-error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="duration">Durée de la Daily</label>
+      <div class="field-suffix">
+        <input
+          id="duration"
+          class="field-input"
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          [formControl]="duration"
+          [attr.aria-invalid]="errorOf(duration) ? 'true' : null"
+          [attr.aria-describedby]="errorOf(duration) ? 'duration-error' : null"
+        />
+        <span class="field-unit" aria-hidden="true">min</span>
+      </div>
+      @if (errorOf(duration); as message) {
+        <p id="duration-error" class="field-error">{{ message }}</p>
+      }
+    </div>
+  </form>
+</main>
