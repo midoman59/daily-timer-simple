@@ -118,4 +118,30 @@ describe('TeamStore (S6, S7, S9 : équipes enregistrées et retrouvées au recha
     expect(xhrSpy).not.toHaveBeenCalled();
     expect(beaconSpy).not.toHaveBeenCalled();
   });
+
+  it('affiche telle quelle une équipe enregistrée avec un doublon, sans dédoublonner (D45)', () => {
+    localStorage.setItem(
+      TEAMS_STORAGE_KEY,
+      JSON.stringify({ version: 2, teams: [{ id: 'x1', name: 'Équipe', members: ['Thomas', 'thomas'] }] }),
+    );
+    const store = new TeamStore();
+    expect(store.readError()).toBeFalse();
+    expect(store.teams()[0].members).toEqual(['Thomas', 'thomas']);
+  });
+
+  it('supprime une équipe et ses membres, sans toucher aux autres (S21)', () => {
+    const store = new TeamStore();
+    const a = store.save(alpha)!;
+    store.save(beta);
+    expect(store.remove(a.id)).toBeTrue();
+    const reloaded = new TeamStore();
+    expect(reloaded.teams().map((team) => team.name)).toEqual(['Équipe Beta']);
+  });
+
+  it("ignore la suppression d'une équipe inconnue", () => {
+    const store = new TeamStore();
+    store.save(alpha);
+    expect(store.remove('inconnue')).toBeFalse();
+    expect(store.teams().length).toBe(1);
+  });
 });

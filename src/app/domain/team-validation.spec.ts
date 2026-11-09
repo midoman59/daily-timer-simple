@@ -1,4 +1,4 @@
-import { memberCountLabel, validateMemberName, validateTeamName } from './team-validation';
+import { capitalizeFirst, memberCountLabel, validateMemberName, validateTeamName } from './team-validation';
 
 describe('memberCountLabel (S4, S8)', () => {
   it('accorde le mot membre selon le nombre', () => {
@@ -52,5 +52,19 @@ describe('validateMemberName (S3, S5)', () => {
     expect(validateMemberName('thomas', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('  Thomas  ', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('Lea', ['Léa'])).toBeNull();
+  });
+});
+
+describe('capitalizeFirst (majuscule du prénom)', () => {
+  it('met en majuscule la première lettre sans toucher au reste', () => {
+    expect(capitalizeFirst('jean-pierre')).toBe('Jean-pierre');
+    expect(capitalizeFirst('élodie')).toBe('Élodie');
+    expect(capitalizeFirst('MARIE')).toBe('MARIE');
+    expect(capitalizeFirst('mcDonald')).toBe('McDonald');
+  });
+
+  it('laisse une chaîne vide ou sans lettre inchangée', () => {
+    expect(capitalizeFirst('')).toBe('');
+    expect(capitalizeFirst('-')).toBe('-');
   });
 });

@@ -1,96 +1,150 @@
 import { TestBed } from '@angular/core/testing';
-import { CLOCK, DailyTimerService, RANDOM } from './daily-timer.service';
+import { CLOCK, DAILY_STORAGE_KEY, DailyTimerService, RANDOM } from './daily-timer.service';
 
-describe('DailyTimerService (S13 à S17 : chronomètre de la Daily)', () => {
+describe('DailyTimerService (S13 à S17, S26 à S28 : chronomètre, reprise, bilan)', () => {
   let now: number;
-  let random: () => number;
-  let service: DailyTimerService;
   const team = { id: 't1', name: 'Alpha', members: ['Léa', 'Tom'] };
   const plan = [
     { name: 'Léa', minutes: 2 },
     { name: 'Tom', minutes: 1 },
   ];
+  const SECOND = 1000;
 
-  beforeEach(() => {
-    now = 1_000_000;
-    random = Math.random;
+  function create(): DailyTimerService {
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         { provide: CLOCK, useValue: () => now },
-        { provide: RANDOM, useValue: () => random() },
+        { provide: RANDOM, useValue: () => 0.5 },
       ],
     });
-    service = TestBed.inject(DailyTimerService);
+    return TestBed.inject(DailyTimerService);
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    now = 1_000_000;
   });
 
-  afterEach(() => service.stop());
-
-  it('ne démarre jamais tout seul', () => {
+  it('ne démarre le décompte qu’au clic « Commencer la Daily » (start)', () => {
+    const service = create();
     expect(service.session()).toBeNull();
-    now += 60_000;
-    service.tick();
-    expect(service.session()).toBeNull();
-  });
-
-  it('démarre avec le temps du premier membre, choisi au lancement', () => {
     service.start(team, plan, 'team');
-    expect(service.current()?.name).toBe('Léa');
     expect(service.countdown()).toBe('02:00');
-    expect(service.isOverrun()).toBeFalse();
-  });
-
-  it('suit l\'heure du système pour décompter', () => {
-    service.start(team, plan, 'team');
-    now += 61_000;
+    now += 30 * SECOND;
     service.tick();
-    expect(service.countdown()).toBe('00:59');
+    expect(service.countdown()).toBe('01:30');
   });
 
-  it('passe en dépassement : le décompte continue avec « +mm:ss »', () => {
+  it('passe en dépassement (« +mm:ss ») et reste sur le même membre jusqu’à « Suivant »', () => {
+    const service = create();
     service.start(team, plan, 'team');
-    now += 130_000;
+    now += 125 * SECOND;
     service.tick();
     expect(service.isOverrun()).toBeTrue();
-    expect(service.countdown()).toBe('00:00');
-    expect(service.overrunLabel()).toBe('00:10');
-  });
-
-  it('passer au suivant repart du temps du nouveau membre', () => {
-    service.start(team, plan, 'team');
-    now += 30_000;
+    expect(service.overrunLabel()).toBe('00:05');
+    now += 200 * SECOND;
+    service.tick();
+    expect(service.current()?.name).toBe('Léa');
     service.next();
     expect(service.current()?.name).toBe('Tom');
-    expect(service.countdown()).toBe('01:00');
     expect(service.isOverrun()).toBeFalse();
   });
 
-  it('passer le membre qui parle lui donne la parole au suivant immédiatement', () => {
+  it('une pause fige le décompte, et la reprise ne compte pas le temps de pause', () => {
+    const service = create();
     service.start(team, plan, 'team');
-    now += 10_000;
-    service.pass(0);
-    expect(service.current()?.name).toBe('Tom');
-    expect(service.countdown()).toBe('01:00');
+    now += 10 * SECOND;
+    service.pause();
+    now += 500 * SECOND;
+    service.tick();
+    expect(service.countdown()).toBe('01:50');
+    service.resume();
+    now += 10 * SECOND;
+    service.tick();
+    expect(service.countdown()).toBe('01:40');
   });
 
-  it('au dernier membre, la Daily est terminée et le décompte s\'arrête à 00:00', () => {
+  it('« Terminer la Daily » enregistre le bilan puis ne garde plus rien de la Daily', () => {
+    const service = create();
     service.start(team, plan, 'team');
+    now += 150 * SECOND;
     service.next();
-    service.next();
-    expect(service.finished()).toBeTrue();
-    expect(service.current()).toBeNull();
-    expect(service.countdown()).toBe('00:00');
+    now += 30 * SECOND;
+    service.finish();
+    expect(service.session()).toBeNull();
+    expect(localStorage.getItem(DAILY_STORAGE_KEY)).toBeNull();
+    expect(service.report()?.rows.map((row) => [row.name, row.spokenSeconds, row.overrunSeconds])).toEqual([
+      ['Léa', 150, 30],
+      ['Tom', 30, 0],
+    ]);
   });
 
-  it('tire l\'ordre aléatoire au démarrage avec le tirage injecté', () => {
-    random = () => 0;
-    service.start(team, plan, 'random');
-    expect(service.current()?.name).toBe('Tom');
+  it('enregistre la Daily au fil de l’eau et la retrouve figée après rechargement, sans temps de fermeture', () => {
+    const service = create();
+    service.start(team, plan, 'team');
+    now += 20 * SECOND;
+    service.tick();
+
+    now += 3600 * SECOND; // Fermeture d'une heure : rien ne doit compter.
+    const reopened = create();
+    expect(reopened.session()?.teamId).toBe('t1');
+    expect(reopened.paused()).toBeTrue();
+    expect(reopened.countdown()).toBe('01:40');
+    reopened.resume();
+    now += 5 * SECOND;
+    reopened.tick();
+    expect(reopened.countdown()).toBe('01:35');
   });
 
-  it('arrête la Daily et efface la session', () => {
+  it('un décompte figé avant une fermeture reste figé (rien ne repart seul)', () => {
+    const service = create();
+    service.start(team, plan, 'team');
+    now += 10 * SECOND;
+    service.askStop();
+    service.tick();
+    const reopened = create();
+    now += 60 * SECOND;
+    reopened.tick();
+    expect(reopened.paused()).toBeTrue();
+    expect(reopened.countdown()).toBe('01:50');
+  });
+
+  it('une garde de sortie puis « Continuer » reprend le décompte sans perte', () => {
+    const service = create();
+    service.start(team, plan, 'team');
+    now += 10 * SECOND;
+    service.askLeave('/equipe/t1/preparer');
+    expect(service.confirm()).toEqual({ kind: 'leave', url: '/equipe/t1/preparer' });
+    now += 100 * SECOND;
+    service.tick();
+    expect(service.countdown()).toBe('01:50');
+    service.cancelConfirm();
+    expect(service.confirm()).toBeNull();
+    now += 10 * SECOND;
+    service.tick();
+    expect(service.countdown()).toBe('01:40');
+  });
+
+  it('une Daily arrêtée ne laisse rien en mémoire ni dans le stockage', () => {
+    const service = create();
     service.start(team, plan, 'team');
     service.stop();
     expect(service.session()).toBeNull();
-    expect(service.current()).toBeNull();
+    expect(localStorage.getItem(DAILY_STORAGE_KEY)).toBeNull();
+    expect(create().session()).toBeNull();
+  });
+
+  it('une donnée de Daily illisible est retirée sans erreur', () => {
+    localStorage.setItem(DAILY_STORAGE_KEY, '{"version":1,"teamId":"t1"}');
+    expect(create().session()).toBeNull();
+    expect(localStorage.getItem(DAILY_STORAGE_KEY)).toBeNull();
+  });
+
+  it('un stockage refusé ne fait pas échouer la Daily', () => {
+    const service = create();
+    spyOn(Storage.prototype, 'setItem').and.throwError('quota');
+    expect(() => service.start(team, plan, 'team')).not.toThrow();
+    expect(service.countdown()).toBe('02:00');
   });
 });

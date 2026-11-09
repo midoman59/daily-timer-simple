@@ -46,3 +46,16 @@ export function validateMemberName(value: string, existing: readonly string[]): 
   }
   return null;
 }
+
+/**
+ * Met la première lettre en majuscule, le reste inchangé (« jean-pierre » donne « Jean-pierre »).
+ * Appliqué à l'ajout d'un prénom, avant les contrôles.
+ */
+export function capitalizeFirst(value: string): string {
+  const first = value.codePointAt(0);
+  if (first === undefined) {
+    return value;
+  }
+  const char = String.fromCodePoint(first);
+  return char.toUpperCase() + value.slice(char.length);
+}

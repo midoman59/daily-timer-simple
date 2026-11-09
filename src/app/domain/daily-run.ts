@@ -17,21 +17,28 @@ export interface Slot {
   name: string;
   allottedSeconds: number;
   status: SlotStatus;
+  /** Temps réellement parlé, en millisecondes, une fois le tour terminé. */
+  spokenMs: number | null;
 }
 
-/** État pur de la Daily : ordre fixe, membre courant (-1 quand la Daily est terminée), début de son tour. */
+/**
+ * État pur de la Daily. `elapsedMs` est le temps parlé du membre courant avant la dernière pause ;
+ * `runningSince` vaut l'heure de reprise quand le décompte tourne, et null quand il est figé.
+ */
 export interface DailyRun {
   order: Slot[];
   currentIndex: number;
-  turnStartedAt: number;
+  elapsedMs: number;
+  runningSince: number | null;
 }
 
-/** Temps de parole par membre : un entier de 1 à 5 minutes. Renvoie le message d'erreur, ou null. */
-export function validateMinutes(value: string): string | null {
-  const minutes = Number(value);
-  return /^[1-5]$/.test(value) && Number.isInteger(minutes)
-    ? null
-    : 'Choisissez une durée entre 1 et 5 minutes.';
+/** Une ligne du bilan (écran f). */
+export interface ReportRow {
+  name: string;
+  passed: boolean;
+  spokenSeconds: number | null;
+  allottedSeconds: number;
+  overrunSeconds: number;
 }
 
 /** Mélange de Fisher-Yates ; `random` est injectable pour les tests. */
@@ -44,7 +51,7 @@ function shuffle<T>(items: readonly T[], random: () => number): T[] {
   return result;
 }
 
-/** Crée la Daily : l'ordre est fixé ici, et le premier membre commence son tour à `startedAt`. */
+/** Crée la Daily : l'ordre est fixé ici, et le premier membre commence à `startedAt`. */
 export function createDailyRun(
   members: readonly MemberPlan[],
   mode: OrderMode,
@@ -56,8 +63,14 @@ export function createDailyRun(
     name: member.name,
     allottedSeconds: member.minutes * 60,
     status: index === 0 ? 'current' : 'waiting',
+    spokenMs: null,
   }));
-  return { order, currentIndex: order.length > 0 ? 0 : -1, turnStartedAt: startedAt };
+  return {
+    order,
+    currentIndex: order.length > 0 ? 0 : -1,
+    elapsedMs: 0,
+    runningSince: order.length > 0 ? startedAt : null,
+  };
 }
 
 /** Membre qui parle, ou null si la Daily est terminée. */
@@ -70,49 +83,105 @@ export function isFinished(run: DailyRun): boolean {
   return run.currentIndex < 0;
 }
 
+/** Vrai quand le décompte est figé (pause, dialogue, ou reprise en attente d'un clic). */
+export function isPaused(run: DailyRun): boolean {
+  return !isFinished(run) && run.runningSince === null;
+}
+
+/** Temps parlé par le membre courant, en millisecondes, pauses exclues. */
+export function elapsedMs(run: DailyRun, now: number): number {
+  return run.elapsedMs + (run.runningSince !== null ? now - run.runningSince : 0);
+}
+
 /** Temps restant du membre courant, en millisecondes ; négatif en dépassement, 0 quand terminée. */
 export function remainingMs(run: DailyRun, now: number): number {
   const slot = currentSlot(run);
   if (!slot) {
     return 0;
   }
-  return slot.allottedSeconds * 1000 - (now - run.turnStartedAt);
+  return slot.allottedSeconds * 1000 - elapsedMs(run, now);
 }
 
-/** Donne la parole au membre en attente suivant, ou termine la Daily s'il n'y en a plus. */
-function advanceFrom(order: Slot[], fromIndex: number, now: number): DailyRun {
-  const nextIndex = order.findIndex((slot, index) => index > fromIndex && slot.status === 'waiting');
-  if (nextIndex < 0) {
-    return { order, currentIndex: -1, turnStartedAt: now };
-  }
-  const next = order.map((slot, index) => (index === nextIndex ? { ...slot, status: 'current' as const } : slot));
-  return { order: next, currentIndex: nextIndex, turnStartedAt: now };
-}
-
-/** « Passer au suivant » : le membre qui parle est fait, et le suivant reçoit la parole à `now`. */
-export function nextMember(run: DailyRun, now: number): DailyRun {
-  const current = currentSlot(run);
-  if (!current) {
+/** Fige le décompte à `now`. Sans effet si la Daily est déjà figée ou terminée. */
+export function pause(run: DailyRun, now: number): DailyRun {
+  if (isFinished(run) || run.runningSince === null) {
     return run;
   }
-  const order = run.order.map((slot, index) =>
-    index === run.currentIndex ? { ...slot, status: 'done' as const } : slot,
+  return { ...run, elapsedMs: elapsedMs(run, now), runningSince: null };
+}
+
+/** Relance le décompte à `now`. Sans effet si la Daily tourne déjà ou est terminée. */
+export function resume(run: DailyRun, now: number): DailyRun {
+  if (isFinished(run) || run.runningSince !== null) {
+    return run;
+  }
+  return { ...run, runningSince: now };
+}
+
+/**
+ * Clôt le tour du membre courant (temps parlé enregistré) et donne la parole au membre en attente
+ * suivant, à zéro. Si la Daily est figée, le suivant reste figé. Termine la Daily s'il n'y en a plus.
+ */
+function advanceFrom(run: DailyRun, status: 'done' | 'passed', now: number): DailyRun {
+  const index = run.currentIndex;
+  const spokenMs = status === 'done' ? elapsedMs(run, now) : null;
+  const order = run.order.map((slot, i) =>
+    i === index ? { ...slot, status, spokenMs } : slot,
   );
-  return advanceFrom(order, run.currentIndex, now);
+  const nextIndex = order.findIndex((slot, i) => i > index && slot.status === 'waiting');
+  if (nextIndex < 0) {
+    return { order, currentIndex: -1, elapsedMs: 0, runningSince: null };
+  }
+  const running = run.runningSince !== null;
+  return {
+    order: order.map((slot, i) => (i === nextIndex ? { ...slot, status: 'current' as const } : slot)),
+    currentIndex: nextIndex,
+    elapsedMs: 0,
+    runningSince: running ? now : null,
+  };
+}
+
+/** « Suivant » : le membre qui parle est fait, et le suivant reçoit la parole. */
+export function nextMember(run: DailyRun, now: number): DailyRun {
+  if (!currentSlot(run)) {
+    return run;
+  }
+  return advanceFrom(run, 'done', now);
 }
 
 /**
  * « Passer ce membre » ou « Passer » sur une ligne : le membre passe, sans temps, et ne revient pas.
- * Si c'est le membre qui parle, la parole passe au suivant à `now`. Un membre déjà fait ou passé est inchangé.
+ * Si c'est le membre qui parle, la parole passe au suivant. Un membre déjà fait ou passé est inchangé.
  */
 export function passMember(run: DailyRun, index: number, now: number): DailyRun {
   const slot = run.order[index];
   if (!slot || slot.status === 'done' || slot.status === 'passed') {
     return run;
   }
-  const order = run.order.map((item, i) => (i === index ? { ...item, status: 'passed' as const } : item));
   if (index !== run.currentIndex) {
-    return { ...run, order };
+    return {
+      ...run,
+      order: run.order.map((item, i) => (i === index ? { ...item, status: 'passed' as const } : item)),
+    };
   }
-  return advanceFrom(order, index, now);
+  return advanceFrom(run, 'passed', now);
+}
+
+/** Lignes du bilan, dans l'ordre de passage effectif. Un membre passé n'a pas de temps. */
+export function reportRows(run: DailyRun): ReportRow[] {
+  return run.order.map((slot) => {
+    const passed = slot.status === 'passed';
+    const spokenSeconds = slot.spokenMs === null ? null : Math.floor(slot.spokenMs / 1000);
+    const overrunSeconds =
+      spokenSeconds === null ? 0 : Math.max(0, spokenSeconds - slot.allottedSeconds);
+    return { name: slot.name, passed, spokenSeconds, allottedSeconds: slot.allottedSeconds, overrunSeconds };
+  });
+}
+
+/** Temps de parole par membre : un entier de 1 à 5 minutes. Renvoie le message d'erreur, ou null. */
+export function validateMinutes(value: string): string | null {
+  const minutes = Number(value);
+  return /^[1-5]$/.test(value) && Number.isInteger(minutes)
+    ? null
+    : 'Choisissez une durée entre 1 et 5 minutes.';
 }

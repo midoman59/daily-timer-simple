@@ -26,7 +26,8 @@ function parseTeamFields(name: unknown, members: unknown): Pick<Team, 'name' | '
   }
   const names: string[] = [];
   for (const member of members) {
-    if (typeof member !== 'string' || validateMemberName(member, names) !== null) {
+    // Pas de contrôle de doublon au chargement (D45) : seule la forme de chaque prénom est vérifiée.
+    if (typeof member !== 'string' || validateMemberName(member, []) !== null) {
       return null;
     }
     names.push(normalizeSpaces(member));
@@ -97,6 +98,19 @@ export class TeamStore {
   /** Équipe d'identifiant donné, ou undefined. */
   find(id: string): Team | undefined {
     return this.teams().find((team) => team.id === id);
+  }
+
+  /**
+   * Supprime une équipe et ses membres. Renvoie false si l'équipe est inconnue ou si l'écriture échoue
+   * (rien ne change alors).
+   */
+  remove(id: string): boolean {
+    const next = this.teams().filter((team) => team.id !== id);
+    if (next.length === this.teams().length || !this.write(next)) {
+      return false;
+    }
+    this.teams.set(next);
+    return true;
   }
 
   /**

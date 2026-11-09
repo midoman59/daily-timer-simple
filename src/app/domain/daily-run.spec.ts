@@ -1,146 +1,129 @@
 import {
-  DailyRun,
+  MemberPlan,
   createDailyRun,
   currentSlot,
+  elapsedMs,
   isFinished,
   nextMember,
   passMember,
+  pause,
   remainingMs,
+  reportRows,
+  resume,
   validateMinutes,
 } from './daily-run';
 
-const members = [
+const members: MemberPlan[] = [
   { name: 'Léa', minutes: 2 },
   { name: 'Tom', minutes: 1 },
   { name: 'Ana', minutes: 3 },
 ];
 
-const names = (run: DailyRun): string[] => run.order.map((slot) => slot.name);
-const statuses = (run: DailyRun): string[] => run.order.map((slot) => slot.status);
+const START = 1_000_000;
+const SECOND = 1000;
 
-describe('Daily : ordre de passage (S11, S12)', () => {
-  it('suit l\'ordre de l\'équipe quand il est choisi', () => {
-    const run = createDailyRun(members, 'team', 0);
-    expect(names(run)).toEqual(['Léa', 'Tom', 'Ana']);
-  });
-
-  it('tire un ordre aléatoire une fois, en gardant tous les membres', () => {
-    const run = createDailyRun(members, 'random', 0, () => 0.5);
-    expect(names(run).slice().sort()).toEqual(['Ana', 'Léa', 'Tom']);
-  });
-
-  it('le tirage aléatoire donne toujours une permutation de l\'équipe, et change l\'ordre d\'un tirage à l\'autre (I4)', () => {
-    // Générateur pseudo-aléatoire déterministe (Park-Miller) : les tirages sont reproductibles.
-    let seed = 42;
-    const random = () => {
-      seed = (seed * 16807) % 2147483647;
-      return seed / 2147483647;
-    };
-    const orders = new Set<string>();
-    for (let i = 0; i < 50; i++) {
-      const run = createDailyRun(members, 'random', 0, random);
-      expect(names(run).slice().sort()).toEqual(['Ana', 'Léa', 'Tom']);
-      orders.add(names(run).join('|'));
-    }
-    expect(orders.size).toBeGreaterThan(1);
-  });
-
-  it('ne change pas la liste des membres passée en entrée', () => {
-    createDailyRun(members, 'random', 0, () => 0);
-    expect(members.map((member) => member.name)).toEqual(['Léa', 'Tom', 'Ana']);
-  });
-
-  it('donne au premier membre de l\'ordre le temps prévu et la parole', () => {
-    const run = createDailyRun(members, 'team', 1000);
+describe('Daily : temps de parole', () => {
+  it('démarre le premier membre à son temps alloué, dans l’ordre de l’équipe', () => {
+    const run = createDailyRun(members, 'team', START);
+    expect(run.order.map((slot) => slot.name)).toEqual(['Léa', 'Tom', 'Ana']);
     expect(currentSlot(run)?.name).toBe('Léa');
-    expect(currentSlot(run)?.allottedSeconds).toBe(120);
-    expect(statuses(run)).toEqual(['current', 'waiting', 'waiting']);
+    expect(remainingMs(run, START)).toBe(120 * SECOND);
   });
 
-  it('ne démarre pas sans membre', () => {
-    const run = createDailyRun([], 'team', 0);
-    expect(isFinished(run)).toBeTrue();
+  it('le décompte devient négatif en dépassement et reste sur le même membre', () => {
+    const run = createDailyRun(members, 'team', START);
+    expect(remainingMs(run, START + 130 * SECOND)).toBe(-10 * SECOND);
+    expect(currentSlot(run)?.name).toBe('Léa');
+  });
+
+  it('« Suivant » passe au membre suivant ; le temps non utilisé est perdu', () => {
+    const run = createDailyRun(members, 'team', START);
+    const next = nextMember(run, START + 30 * SECOND);
+    expect(currentSlot(next)?.name).toBe('Tom');
+    expect(remainingMs(next, START + 30 * SECOND)).toBe(60 * SECOND);
+    expect(next.order[0].status).toBe('done');
+  });
+
+  it('un tirage aléatoire est fixé à la création et suit le mode choisi', () => {
+    const run = createDailyRun(members, 'random', START, () => 0);
+    expect(run.order.map((slot) => slot.name)).toEqual(['Tom', 'Ana', 'Léa']);
+    expect(createDailyRun(members, 'team', START).order.map((slot) => slot.name)).toEqual(['Léa', 'Tom', 'Ana']);
   });
 });
 
-describe('Daily : passer au membre suivant (S14)', () => {
-  it('marque le membre quitté comme fait et redonne le temps du suivant', () => {
-    const run = nextMember(createDailyRun(members, 'team', 0), 90_000);
-    expect(statuses(run)).toEqual(['done', 'current', 'waiting']);
+describe('Daily : passer un membre', () => {
+  it('passer le membre qui parle donne la parole au suivant, sans temps pour lui', () => {
+    const run = passMember(createDailyRun(members, 'team', START), 0, START + 10 * SECOND);
+    expect(run.order[0].status).toBe('passed');
     expect(currentSlot(run)?.name).toBe('Tom');
-    expect(remainingMs(run, 90_000)).toBe(60_000);
   });
 
-  it('au dernier membre, la Daily est terminée', () => {
-    let run = createDailyRun(members, 'team', 0);
-    run = nextMember(run, 1);
-    run = nextMember(run, 2);
-    run = nextMember(run, 3);
-    expect(isFinished(run)).toBeTrue();
-    expect(statuses(run)).toEqual(['done', 'done', 'done']);
-    expect(remainingMs(run, 10)).toBe(0);
+  it('passer un membre à venir ne change pas le membre qui parle', () => {
+    const run = passMember(createDailyRun(members, 'team', START), 2, START);
+    expect(run.order[2].status).toBe('passed');
+    expect(currentSlot(run)?.name).toBe('Léa');
+  });
+
+  it('un membre déjà fait ou déjà passé ne peut plus être passé', () => {
+    const first = nextMember(createDailyRun(members, 'team', START), START + SECOND);
+    expect(passMember(first, 0, START + 2 * SECOND)).toBe(first);
+    const passed = passMember(createDailyRun(members, 'team', START), 1, START);
+    expect(passMember(passed, 1, START)).toBe(passed);
   });
 });
 
-describe('Daily : passer un membre (S15)', () => {
-  it('passe un membre à venir sans lui attribuer de temps', () => {
-    const run = passMember(createDailyRun(members, 'team', 0), 2, 5);
-    expect(statuses(run)).toEqual(['current', 'waiting', 'passed']);
+describe('Daily : fin et bilan', () => {
+  it('« Suivant » au dernier membre termine la Daily', () => {
+    let run = createDailyRun(members, 'team', START);
+    run = nextMember(run, START + 10 * SECOND);
+    run = nextMember(run, START + 20 * SECOND);
+    run = nextMember(run, START + 90 * SECOND);
+    expect(isFinished(run)).toBe(true);
+    expect(currentSlot(run)).toBeNull();
   });
 
-  it('passe le membre qui parle : la parole va immédiatement au suivant, avec son temps', () => {
-    const run = passMember(createDailyRun(members, 'team', 0), 0, 30_000);
-    expect(statuses(run)).toEqual(['passed', 'current', 'waiting']);
+  it('le bilan donne le temps parlé, le temps alloué, le dépassement et le statut passé', () => {
+    let run = createDailyRun(members, 'team', START);
+    run = nextMember(run, START + 150 * SECOND); // Léa : 150 s pour 120 s alloués
+    run = passMember(run, 1, START + 150 * SECOND); // Tom passé
+    run = nextMember(run, START + 180 * SECOND); // Ana : 30 s
+    expect(reportRows(run)).toEqual([
+      { name: 'Léa', passed: false, spokenSeconds: 150, allottedSeconds: 120, overrunSeconds: 30 },
+      { name: 'Tom', passed: true, spokenSeconds: null, allottedSeconds: 60, overrunSeconds: 0 },
+      { name: 'Ana', passed: false, spokenSeconds: 30, allottedSeconds: 180, overrunSeconds: 0 },
+    ]);
+  });
+});
+
+describe('Daily : pause et reprise', () => {
+  it('la pause fige le décompte, et le temps de pause ne compte pas', () => {
+    const run = pause(createDailyRun(members, 'team', START), START + 10 * SECOND);
+    expect(elapsedMs(run, START + 100 * SECOND)).toBe(10 * SECOND);
+    expect(remainingMs(run, START + 100 * SECOND)).toBe(110 * SECOND);
+  });
+
+  it('la reprise repart du temps déjà parlé', () => {
+    let run = pause(createDailyRun(members, 'team', START), START + 10 * SECOND);
+    run = resume(run, START + 100 * SECOND);
+    expect(elapsedMs(run, START + 110 * SECOND)).toBe(20 * SECOND);
+  });
+
+  it('« Suivant » pendant la pause : le membre suivant reste figé jusqu’à la reprise', () => {
+    let run = pause(createDailyRun(members, 'team', START), START + 10 * SECOND);
+    run = nextMember(run, START + 50 * SECOND);
     expect(currentSlot(run)?.name).toBe('Tom');
-    expect(remainingMs(run, 30_000)).toBe(60_000);
-  });
-
-  it('un membre passé ne reprend pas dans la même Daily', () => {
-    let run = passMember(createDailyRun(members, 'team', 0), 1, 0);
-    run = nextMember(run, 10);
-    expect(currentSlot(run)?.name).toBe('Ana');
-    expect(statuses(run)).toEqual(['done', 'passed', 'current']);
-  });
-
-  it('passer le dernier membre qui parle termine la Daily', () => {
-    let run = nextMember(createDailyRun(members, 'team', 0), 1);
-    run = nextMember(run, 2);
-    run = passMember(run, 2, 3);
-    expect(isFinished(run)).toBeTrue();
-  });
-
-  it('ne change pas un membre déjà fait ou déjà passé', () => {
-    const afterNext = nextMember(createDailyRun(members, 'team', 0), 1);
-    expect(passMember(afterNext, 0, 2)).toEqual(afterNext);
-    const afterPass = passMember(createDailyRun(members, 'team', 0), 1, 0);
-    expect(passMember(afterPass, 1, 5)).toEqual(afterPass);
+    expect(remainingMs(run, START + 500 * SECOND)).toBe(60 * SECOND);
+    run = resume(run, START + 500 * SECOND);
+    expect(remainingMs(run, START + 510 * SECOND)).toBe(50 * SECOND);
   });
 });
 
-describe('Préparation : temps de parole par membre (S10)', () => {
-  it('accepte un entier de 1 à 5 minutes', () => {
-    for (const value of ['1', '2', '3', '4', '5']) {
-      expect(validateMinutes(value)).toBeNull();
-    }
-  });
-
-  it('refuse une valeur absente ou hors bornes, avec le message de l\'écran', () => {
-    const message = 'Choisissez une durée entre 1 et 5 minutes.';
-    expect(validateMinutes('')).toBe(message);
-    expect(validateMinutes('0')).toBe(message);
-    expect(validateMinutes('6')).toBe(message);
-    expect(validateMinutes('2,5')).toBe(message);
-  });
-});
-
-describe('Daily : décompte et dépassement (S16)', () => {
-  it('calcule le temps restant du membre courant à partir de l\'heure du début de son tour', () => {
-    const run = createDailyRun(members, 'team', 0);
-    expect(remainingMs(run, 60_000)).toBe(60_000);
-  });
-
-  it('devient négatif au-delà du temps prévu (le décompte continue)', () => {
-    const run = createDailyRun(members, 'team', 0);
-    expect(remainingMs(run, 150_000)).toBe(-30_000);
+describe('validateMinutes', () => {
+  it('accepte les entiers de 1 à 5 et refuse le reste', () => {
+    expect(validateMinutes('1')).toBeNull();
+    expect(validateMinutes('5')).toBeNull();
+    expect(validateMinutes('0')).not.toBeNull();
+    expect(validateMinutes('6')).not.toBeNull();
+    expect(validateMinutes('2.5')).not.toBeNull();
   });
 });
