@@ -144,3 +144,66 @@ describe('TeamEditor (S3 : compteur de membres)', () => {
     expect(el.textContent).toContain('Une équipe ne peut pas dépasser 15 membres.');
   });
 });
+
+describe('TeamEditor (S4 : retirer un membre avant enregistrement)', () => {
+  let fixture: ComponentFixture<TeamEditor>;
+  let el: HTMLElement;
+
+  function addName(name: string): void {
+    const input = el.querySelector<HTMLInputElement>('#member-name')!;
+    input.value = name;
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+  }
+
+  function deleteButtons(): HTMLButtonElement[] {
+    return Array.from(el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn'));
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
+    fixture = TestBed.createComponent(TeamEditor);
+    fixture.detectChanges();
+    el = fixture.nativeElement as HTMLElement;
+    addName('Léa');
+    addName('Tom');
+    addName('Ana');
+  });
+
+  it('a un bouton « Supprimer » nommé pour chaque membre', () => {
+    expect(deleteButtons().map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Supprimer Léa',
+      'Supprimer Tom',
+      'Supprimer Ana',
+    ]);
+  });
+
+  it('retire la ligne et décrémente le compteur', () => {
+    deleteButtons()[1].click();
+    fixture.detectChanges();
+    const names = Array.from(el.querySelectorAll('.member-list .member-name')).map((n) => n.textContent?.trim());
+    expect(names).toEqual(['Léa', 'Ana']);
+    expect(el.querySelector('.counter')?.textContent?.trim()).toBe('2 membres');
+  });
+
+  it('permet de rajouter un prénom supprimé', () => {
+    deleteButtons()[0].click();
+    fixture.detectChanges();
+    addName('Léa');
+    const names = Array.from(el.querySelectorAll('.member-list .member-name')).map((n) => n.textContent?.trim());
+    expect(names).toEqual(['Tom', 'Ana', 'Léa']);
+  });
+
+  it('place le focus sur le bouton Supprimer suivant, ou sur le champ Prénom', () => {
+    deleteButtons()[0].click();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(deleteButtons()[0]);
+    expect(deleteButtons()[0].getAttribute('aria-label')).toBe('Supprimer Tom');
+
+    deleteButtons()[1].click();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(el.querySelector('#member-name'));
+  });
+});

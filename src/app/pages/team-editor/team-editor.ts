@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, signal, viewChild, viewChildren } from '@angular/core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
 import {
   DEFAULT_DURATION_MINUTES,
@@ -39,6 +39,7 @@ export class TeamEditor {
   protected readonly memberAttempted = signal(false);
 
   private readonly memberField = viewChild.required<ElementRef<HTMLInputElement>>('memberField');
+  private readonly deleteButtons = viewChildren<ElementRef<HTMLButtonElement>>('deleteButton');
 
   protected readonly name = new FormControl('', {
     nonNullable: true,
@@ -96,6 +97,17 @@ export class TeamEditor {
     } else {
       this.memberName.enable({ emitEvent: false });
     }
+  }
+
+  /**
+   * Retire le membre à cet index. Le focus passe au bouton Supprimer du membre suivant,
+   * ou au champ Prénom s'il n'y a plus de membre après.
+   */
+  protected removeMember(index: number): void {
+    const next = this.deleteButtons()[index + 1]?.nativeElement;
+    this.members.update((list) => list.filter((_, i) => i !== index));
+    this.syncMemberInput();
+    (next ?? this.memberField().nativeElement).focus();
   }
 
   protected onMemberEnter(event: Event): void {
