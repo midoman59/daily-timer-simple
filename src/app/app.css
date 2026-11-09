@@ -1,3 +1,5 @@
 .app-shell {
   min-height: 100vh;
+  /* L'écran entrant glisse de 24 px : ce débordement reste dans l'écran et ne crée aucun défilement à 320 px. */
+  overflow-x: clip;
 }

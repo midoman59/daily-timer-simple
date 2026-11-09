@@ -138,3 +138,22 @@ test('320 px : aucun défilement horizontal', async ({ page }) => {
   );
   expect(overflow).toBe(0);
 });
+
+/** Écart entre la largeur du document et la fenêtre : 0 quand il n'y a aucun défilement horizontal. */
+async function horizontalOverflow(page: Page): Promise<number> {
+  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+}
+
+test('320 px : préparation et Daily sans défilement horizontal, avec des prénoms longs', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto('./');
+  await createTeam(page, 'Équipe Théta', ['Marie-Christine', 'Jean-Baptiste', 'Hortense-Lou']);
+
+  await page.getByRole('button', { name: 'Démarrer une Daily' }).click();
+  await expect(page.getByRole('heading', { name: 'Préparer la Daily' })).toBeVisible();
+  expect(await horizontalOverflow(page)).toBe(0);
+
+  await page.getByRole('button', { name: 'Commencer la Daily' }).click();
+  await expect(page.getByRole('timer')).toBeVisible();
+  expect(await horizontalOverflow(page)).toBe(0);
+});
