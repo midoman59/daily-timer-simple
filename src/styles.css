@@ -492,10 +492,6 @@ p {
     background: var(--color-surface-sunken);
     color: var(--color-text);
   }
-
-  .row-text-hover:hover {
-    background: #f9f9fb;
-  }
 }
 
 .btn-primary:active:not(.is-disabled):not([aria-disabled='true']) {
