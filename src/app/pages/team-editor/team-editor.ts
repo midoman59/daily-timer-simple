@@ -31,6 +31,9 @@ export class TeamEditor {
   private readonly store = inject(TeamStore);
   private readonly router = inject(Router);
 
+  /** Vrai si une équipe stockée est illisible : on demande de la recréer. */
+  protected readonly unreadable = this.store.readError;
+
   /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
   protected readonly storageError = signal(false);
 
