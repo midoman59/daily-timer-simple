@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 // Parcours complet sur le build de production, sous /daily-timer-simple/ (base href GitHub Pages).
 
@@ -48,6 +48,32 @@ test('rechargement : l\'équipe est retrouvée, la Daily ne redémarre pas seule
   await page.goto('./#/daily');
   await expect(page).toHaveURL(/#\/presentation$/);
 });
+
+/** Crée une équipe de deux membres et lance la Daily. */
+async function startDaily(page: Page): Promise<void> {
+  await page.goto('./');
+  await page.getByLabel("Nom d'équipe").fill('Équipe Gamma');
+  await page.getByLabel('Prénom').fill('Léa');
+  await page.getByLabel('Prénom').press('Enter');
+  await page.getByLabel('Prénom').fill('Tom');
+  await page.getByLabel('Prénom').press('Enter');
+  await page.getByRole('button', { name: "Enregistrer l'équipe" }).click();
+  await page.getByRole('button', { name: 'Démarrer une Daily' }).click();
+  await expect(page).toHaveURL(/#\/daily$/);
+}
+
+for (const key of ['Tab', 'Shift+Tab']) {
+  test(`dialogue d'arrêt : après un clic sur le voile puis ${key}, le focus reste dans le dialogue`, async ({ page }) => {
+    await startDaily(page);
+    await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+
+    await page.locator('.scrim').click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press(key);
+
+    await expect(page.getByRole('alertdialog').locator(':focus')).toHaveCount(1);
+  });
+}
 
 test('320 px : aucun défilement horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });

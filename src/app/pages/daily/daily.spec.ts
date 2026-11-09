@@ -96,6 +96,27 @@ describe('Daily (S9 : écran de la Daily)', () => {
     expect(timer.session()).not.toBeNull();
   });
 
+  it('rend le fond inerte pendant la confirmation : le focus ne peut pas revenir derrière le dialogue', () => {
+    const main = el.querySelector<HTMLElement>('main')!;
+    expect(main.inert).toBeFalse();
+    button('Arrêter la Daily')!.click();
+    fixture.detectChanges();
+    expect(main.inert).toBeTrue();
+
+    const background = button('Arrêter la Daily')!;
+    background.focus();
+    expect(document.activeElement).not.toBe(background);
+    expect(document.activeElement?.closest('[role="alertdialog"]')).not.toBeNull();
+  });
+
+  it('rend le fond à nouveau actif après « Continuer »', () => {
+    button('Arrêter la Daily')!.click();
+    fixture.detectChanges();
+    button('Continuer')!.click();
+    fixture.detectChanges();
+    expect(el.querySelector<HTMLElement>('main')!.inert).toBeFalse();
+  });
+
   it('« Arrêter » arrête la Daily et ramène à la présentation', () => {
     button('Arrêter la Daily')!.click();
     fixture.detectChanges();

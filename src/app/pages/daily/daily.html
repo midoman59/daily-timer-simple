@@ -1,5 +1,5 @@
 @if (team(); as team) {
-  <main class="daily">
+  <main class="daily" [attr.inert]="confirming() ? '' : null">
     <h1 #heading class="team-title" tabindex="-1">{{ team.name }}</h1>
 
     <div class="clock-area">
@@ -39,25 +39,26 @@
     </div>
 
     <p class="sr-only" role="status">{{ announcement() }}</p>
+  </main>
 
-    @if (confirming()) {
-      <div class="scrim">
-        <div
-          class="dialog"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="stop-title"
-          aria-describedby="stop-desc"
-          (keydown)="onDialogKeydown($event)"
-        >
-          <h2 id="stop-title" class="dialog-title">Arrêter la Daily ?</h2>
-          <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera.</p>
-          <div class="dialog-actions">
-            <button #continueButton type="button" class="btn btn-primary" (click)="continueDaily()">Continuer</button>
-            <button #confirmStop type="button" class="btn btn-danger" (click)="stopDaily()">Arrêter</button>
-          </div>
+  <!-- Hors de <main> : celui-ci devient inerte pendant la confirmation (focus piégé dans le dialogue). -->
+  @if (confirming()) {
+    <div class="scrim">
+      <div
+        class="dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="stop-title"
+        aria-describedby="stop-desc"
+        (keydown)="onDialogKeydown($event)"
+      >
+        <h2 id="stop-title" class="dialog-title">Arrêter la Daily ?</h2>
+        <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera.</p>
+        <div class="dialog-actions">
+          <button #continueButton type="button" class="btn btn-primary" (click)="continueDaily()">Continuer</button>
+          <button #confirmStop type="button" class="btn btn-danger" (click)="stopDaily()">Arrêter</button>
         </div>
       </div>
-    }
-  </main>
+    </div>
+  }
 }
