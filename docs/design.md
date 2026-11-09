@@ -25,6 +25,7 @@
 | 10 | Libellés de groupe (« Équipe », « Membres ») en casse de phrase, graisse 600. | Voir 6. | section 3.2 |
 | 11 | Champs : `text-transform: none` explicite sur les champs et les prénoms. | Voir 6. | section 7 |
 | 12 | Dialogues : largeur, empilement, focus et Échap alignés sur le brief v3 (Continuer par défaut sur les dialogues d'arrêt et de sortie ; Annuler par défaut sur la suppression ; Revenir par défaut sur la modification). | Décisions 7 à 9, 14. | section 6 |
+| 13 | Correction après la décision client 11 : « Passer ce membre » reste visible au dernier membre qui parle. La règle de masquage (sections 5.5.1 et 10.2) est retirée. | D65 ; revue 6, I3 ; revue 7, IM-2. | sections 5.5.1, 10.2 |
 
 Ce qui ne change pas : la palette claire de la v2 (sauf 7), la police système, l'échelle typographique, le glissement horizontal des écrans, la règle « une action principale par écran », l'icône d'application (section 9).
 
@@ -573,7 +574,7 @@ Groupe blanc (style réglages), pas de carte dans une carte. Contenu dans l'ordr
 | Libellé du principal | « Suivant » | « Terminer la Daily » |
 | Action | Enregistre le temps parlé, passe au suivant | Enregistre le temps parlé, ouvre le bilan (f) |
 | Style | Principal plein, même position | Principal plein, même position |
-| « Passer ce membre » | Visible | Masqué si le membre qui parle est le dernier (aucun membre à passer à sa place) [à valider] |
+| « Passer ce membre » | Visible | Visible, y compris au dernier membre qui parle (D65). Un absent passé en dernier est compté « passé » au bilan, sans temps. |
 
 - Le changement de libellé est instantané. Pour le pointeur, seul l'opacité du libellé change, 120 ms `--ease-out` ; aucun déplacement.
 - La condition est recalculée à chaque changement : un membre passé en fin de liste ne bloque pas la fin (décision 2).
@@ -834,7 +835,7 @@ Fond plat `#0066CC`, glyphe blanc. Une variante sombre de l'icône n'est pas dé
 ## 10. Points à valider
 
 1. **Espace sous « Nouvelle équipe »** : 16 px, défini par `--space-cta-to-list`. Sur (a), le bouton sort de la barre d'actions mobile et passe dans le flux, au-dessus de la liste (desktop et mobile). Confirmer ce déplacement.
-2. **Dernier membre qui parle** : « Passer ce membre » est masqué quand aucun membre ne reste à venir. Le membre qui parle se termine par « Terminer la Daily ».
+2. **Dernier membre qui parle** : résolu par D65. « Passer ce membre » reste visible au dernier membre qui parle, comme aux autres membres qui parlent. Une fois la liste épuisée, le principal devient « Terminer la Daily ».
 3. **Focus après « Terminer la Daily »** : le focus reste sur le même bouton, dont le libellé change. Un second Entrée peut donc terminer la Daily. Préférer une confirmation, ou déplacer le focus vers le bilan ?
 4. **Dialogue de suppression d'équipe** : bouton « Supprimer l'équipe » plein et destructif, focus par défaut sur « Annuler ».
 5. **Bilan** : bouton « Copier le bilan » en texte (demande du client). Sur mobile, il est au-dessus de « Retour à l'équipe », dans la barre.
