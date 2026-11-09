@@ -68,6 +68,20 @@ test('rechargement : la Daily reprend figée, rien ne repart sans clic, et les �
   await expect(page.getByText('Daily en pause')).toHaveCount(0);
 });
 
+test('réouverture à la racine pendant une Daily : la Daily s\'ouvre en pause, et la progression est gardée (I1, S1, S27)', async ({ page }) => {
+  await page.goto('./');
+  await createTeam(page, 'Équipe Racine', ['Léa', 'Tom']);
+  await startDaily(page);
+  await page.getByRole('button', { name: 'Suivant' }).click();
+  await expect(page.getByRole('timer')).toHaveAccessibleName('Temps restant pour Tom');
+
+  await page.goto('./');
+  await expect(page).toHaveURL(/#\/equipe\/[^/]+\/daily$/);
+  await expect(page.getByText('Daily en pause')).toBeVisible();
+  await expect(page.getByRole('timer')).toHaveAccessibleName('Temps restant pour Tom');
+  await expect(page.getByRole('heading', { name: 'Équipe Racine' })).toBeVisible();
+});
+
 test('accueil : « Mes équipes » quand une équipe existe, et plusieurs équipes retrouvées', async ({ page }) => {
   await page.goto('./');
   await createTeam(page, 'Équipe Zeta', ['Léa', 'Tom']);

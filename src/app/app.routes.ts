@@ -10,9 +10,17 @@ import { DailyTimerService } from './services/daily-timer.service';
 import { TeamStore } from './services/team.store';
 
 /**
- * Écran d'accueil : « Mes équipes » si au moins une équipe existe, sinon la création d'équipe.
+ * Écran d'accueil (S1). Une Daily en cours s'ouvre en pause (S27), sur son écran (e) ; sinon « Mes équipes »
+ * si au moins une équipe existe, et la création d'équipe sinon.
  */
-const home = () => (inject(TeamStore).teams().length > 0 ? '/equipes' : '/equipe/nouvelle');
+const home = () => {
+  const store = inject(TeamStore);
+  const session = inject(DailyTimerService).session();
+  if (session && store.find(session.teamId) !== undefined) {
+    return `/equipe/${session.teamId}/daily`;
+  }
+  return store.teams().length > 0 ? '/equipes' : '/equipe/nouvelle';
+};
 
 /** Protège les écrans d'une équipe : une équipe inconnue renvoie à l'accueil. */
 const teamExists = (route: ActivatedRouteSnapshot) =>

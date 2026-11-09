@@ -71,4 +71,22 @@ describe('Routes (S1 : accueil selon les équipes, S9 : rechargement)', () => {
     expect(await open(`/equipe/${team.id}/daily`)).toBe(`/equipe/${team.id}`);
     expect(TestBed.inject(DailyTimerService).session()).toBeNull();
   });
+
+  it('à l\'accueil, une Daily en cours s\'ouvre en pause, sans être remplacée (S1, S27, I1)', async () => {
+    TestBed.inject(DailyTimerService).start(
+      { id: team.id, name: 'Alpha', members: ['Léa', 'Tom'] },
+      [
+        { name: 'Léa', minutes: 2 },
+        { name: 'Tom', minutes: 1 },
+      ],
+      'team',
+    );
+    // Rechargement de l'application : la Daily enregistrée est relue au démarrage du service.
+    TestBed.resetTestingModule();
+    configure();
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/');
+    expect(TestBed.inject(Router).url).toBe(`/equipe/${team.id}/daily`);
+    expect(TestBed.inject(DailyTimerService).paused()).toBeTrue();
+  });
 });
