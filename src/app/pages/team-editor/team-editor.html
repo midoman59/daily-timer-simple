@@ -1,95 +1,88 @@
-<main class="page" (keydown.escape)="onEscape()">
-  <h1 #title class="page-title" tabindex="-1">{{ isEdit ? "Modifier l'équipe" : "Créer votre équipe" }}</h1>
+<main class="screen" (keydown.escape)="onEscape()">
+  @if (isEdit) {
+    <a class="back-link" routerLink="/equipes">‹ Mes équipes</a>
+  }
+
+  <h1 #title class="screen-title" tabindex="-1">{{ heading() }}</h1>
 
   @if (unreadable()) {
-    <p class="banner-error" role="alert">
-      Les données de l'équipe sont illisibles. Recréez l'équipe.
+    <p class="banner banner-error" role="alert">
+      <span class="banner-text">Les données de l'équipe sont illisibles. Recréez l'équipe.</span>
     </p>
   }
 
   @if (storageError()) {
-    <p class="banner-error" role="alert">
-      L'équipe n'a pas pu être enregistrée sur cet appareil. Le stockage du navigateur est indisponible.
+    <p class="banner banner-error" role="alert">
+      <span class="banner-text">L'équipe n'a pas pu être enregistrée sur cet appareil. Le stockage du navigateur est indisponible.</span>
     </p>
   }
 
-  <div class="card">
-    <div class="field">
-      <label class="field-label" for="team-name">Nom d'équipe</label>
-      <input
-        id="team-name"
-        #nameField
-        class="field-input"
-        type="text"
-        autocomplete="off"
-        [formControl]="name"
-        [attr.aria-invalid]="errorOf(name) ? 'true' : null"
-        [attr.aria-describedby]="errorOf(name) ? 'team-name-error' : null"
-      />
-      @if (errorOf(name); as message) {
-        <p id="team-name-error" class="field-error">{{ message }}</p>
-      }
-    </div>
-
-    <div class="field">
-      <label class="field-label" for="duration">Durée de la Daily</label>
-      <div class="field-suffix">
+  <div class="group">
+    <div class="row row-field">
+      <div class="field">
+        <label class="field-label" for="team-name">Nom d'équipe</label>
         <input
-          id="duration"
-          #durationField
+          id="team-name"
+          #nameField
           class="field-input"
           type="text"
-          inputmode="numeric"
           autocomplete="off"
-          [formControl]="duration"
-          [attr.aria-invalid]="errorOf(duration) || timeRuleMessage() ? 'true' : null"
-          [attr.aria-describedby]="errorOf(duration) || timeRuleMessage() ? 'duration-error' : null"
+          [formControl]="name"
+          [attr.aria-invalid]="errorOf(name) ? 'true' : null"
+          [attr.aria-describedby]="errorOf(name) ? 'team-name-error' : null"
         />
-        <span class="field-unit" aria-hidden="true">min</span>
+        @if (errorOf(name); as message) {
+          <p id="team-name-error" class="field-error">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8v5m0 3h.01M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span>{{ message }}</span>
+          </p>
+        }
       </div>
-      @if (errorOf(duration); as message) {
-        <p id="duration-error" class="field-error">{{ message }}</p>
-      } @else if (timeRuleMessage(); as message) {
-        <p id="duration-error" class="field-error">{{ message }}</p>
-      }
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2 id="members-heading" class="section-label">Membres</h2>
+    <span class="counter" role="status" aria-live="polite">{{ countLabel() }}</span>
+  </div>
+
+  <div class="group">
+    <div class="row row-field row-add">
+      <div class="field">
+        <label class="field-label" for="member-name">Prénom</label>
+        <input
+          id="member-name"
+          #memberField
+          class="field-input"
+          type="text"
+          autocomplete="off"
+          [formControl]="memberName"
+          (keydown.enter)="onMemberEnter($event)"
+          [attr.aria-invalid]="memberError() ? 'true' : null"
+          [attr.aria-describedby]="memberError() ? 'member-name-error' : null"
+        />
+        @if (memberError(); as message) {
+          <p id="member-name-error" class="field-error">
+            <span>{{ message }}</span>
+          </p>
+        }
+      </div>
+      <button type="button" class="btn-text" [disabled]="isFull()" (click)="addMember()">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+        Ajouter
+      </button>
     </div>
 
-    <section class="field" aria-labelledby="members-heading">
-      <div class="members-head">
-        <h2 id="members-heading" class="section-label">Membres</h2>
-        <span class="counter" role="status" aria-live="polite">{{ countLabel() }}</span>
-      </div>
-
-      <div class="add-row">
-        <div class="add-field">
-          <label class="field-label" for="member-name">Prénom</label>
-          <input
-            id="member-name"
-            #memberField
-            class="field-input"
-            type="text"
-            autocomplete="off"
-            [formControl]="memberName"
-            (keydown.enter)="onMemberEnter($event)"
-            [attr.aria-invalid]="memberError() ? 'true' : null"
-            [attr.aria-describedby]="memberError() ? 'member-name-error' : null"
-          />
-          @if (memberError(); as message) {
-            <p id="member-name-error" class="field-error">{{ message }}</p>
-          }
-        </div>
-        <button type="button" class="btn btn-secondary" [disabled]="isFull()" (click)="addMember()">Ajouter</button>
-      </div>
-
-      <ol class="member-list">
-        @for (member of members(); track member) {
-          <li class="member-row">
-            <span class="member-order">{{ $index + 1 }}</span>
-            <span class="member-name">{{ member }}</span>
+    @if (members().length > 0) {
+      <ol class="member-list" aria-labelledby="members-heading">
+        @for (member of members(); track $index) {
+          <li class="row">
+            <span class="row-order">{{ $index + 1 }}</span>
+            <span class="row-title">{{ member }}</span>
             <button
               #deleteButton
               type="button"
-              class="icon-btn"
+              class="btn-icon"
               [attr.aria-label]="'Supprimer ' + member"
               [title]="'Supprimer ' + member"
               (click)="removeMember($index)"
@@ -101,28 +94,28 @@
           </li>
         }
       </ol>
-      @if (members().length < 2) {
-        <p class="help">Ajoutez au moins 2 membres pour continuer.</p>
-      }
-    </section>
-
-    <div class="actions">
-      @if (isEdit) {
-        <button type="button" class="btn btn-link" (click)="cancel()">Annuler</button>
-      }
-      <button
-        type="button"
-        class="btn btn-primary"
-        [attr.aria-disabled]="canSave() ? null : 'true'"
-        [attr.aria-describedby]="saveBlockReason() ? 'save-hint' : null"
-        [class.is-disabled]="!canSave()"
-        (click)="onSave()"
-      >
-        Enregistrer l'équipe
-      </button>
-    </div>
-    @if (saveBlockReason(); as reason) {
-      <p id="save-hint" class="help save-hint">{{ reason }}</p>
     }
+  </div>
+
+  @if (members().length < minMembers) {
+    <p id="members-help" class="help">Ajoutez au moins {{ minMembers }} membres pour continuer.</p>
+  }
+
+  <div class="action-bar">
+    @if (isEdit) {
+      <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
+    } @else if (hasTeams) {
+      <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
+    }
+    <button
+      type="button"
+      class="btn btn-primary"
+      [attr.aria-disabled]="canSave() ? null : 'true'"
+      [attr.aria-describedby]="members().length < minMembers ? 'members-help' : null"
+      [class.is-disabled]="!canSave()"
+      (click)="onSave()"
+    >
+      Enregistrer l'équipe
+    </button>
   </div>
 </main>

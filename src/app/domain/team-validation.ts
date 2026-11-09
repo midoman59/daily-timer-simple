@@ -1,9 +1,12 @@
-export const DEFAULT_DURATION_MINUTES = 15;
-export const MIN_DURATION_MINUTES = 1;
-export const MAX_DURATION_MINUTES = 120;
 export const TEAM_NAME_MAX_LENGTH = 50;
+export const MEMBER_NAME_MAX_LENGTH = 30;
 export const MIN_MEMBERS = 2;
 export const MAX_MEMBERS = 15;
+
+/** Libellé du compteur de membres : « 0 membre », « 1 membre », « 2 membres »… */
+export function memberCountLabel(count: number): string {
+  return count <= 1 ? `${count} membre` : `${count} membres`;
+}
 
 /** Retire les espaces en début et fin, réduit les espaces multiples à un seul. */
 export function normalizeSpaces(value: string): string {
@@ -14,31 +17,13 @@ export function normalizeSpaces(value: string): string {
 export function validateTeamName(value: string): string | null {
   const name = normalizeSpaces(value);
   if (!name) {
-    return "Donnez un nom à votre équipe.";
+    return 'Donnez un nom à votre équipe.';
   }
   if (name.length > TEAM_NAME_MAX_LENGTH) {
-    return `Le nom d'équipe ne peut pas dépasser ${TEAM_NAME_MAX_LENGTH} caractères.`;
+    return `Le nom d'équipe ne dépasse pas ${TEAM_NAME_MAX_LENGTH} caractères.`;
   }
   return null;
 }
-
-/** Renvoie le message d'erreur de la durée (entier de 1 à 120 minutes), ou null. */
-export function validateDuration(value: string): string | null {
-  const text = value.trim();
-  if (!text) {
-    return 'Indiquez la durée de la Daily.';
-  }
-  if (!/^\d+$/.test(text)) {
-    return 'Saisissez un nombre entier de minutes.';
-  }
-  const minutes = Number(text);
-  if (minutes < MIN_DURATION_MINUTES || minutes > MAX_DURATION_MINUTES) {
-    return `La durée doit être comprise entre ${MIN_DURATION_MINUTES} et ${MAX_DURATION_MINUTES} minutes.`;
-  }
-  return null;
-}
-
-export const MEMBER_NAME_MAX_LENGTH = 30;
 
 /**
  * Renvoie le message d'erreur d'un prénom saisi, ou null si le prénom est valide.
@@ -50,7 +35,7 @@ export function validateMemberName(value: string, existing: readonly string[]): 
     return 'Saisissez un prénom.';
   }
   if (name.length > MEMBER_NAME_MAX_LENGTH) {
-    return `Le prénom ne peut pas dépasser ${MEMBER_NAME_MAX_LENGTH} caractères.`;
+    return `Le prénom ne dépasse pas ${MEMBER_NAME_MAX_LENGTH} caractères.`;
   }
   if (!/^[\p{L}\s'’-]+$/u.test(name) || !/\p{L}/u.test(name)) {
     return "Le prénom ne peut contenir que des lettres, espaces, traits d'union et apostrophes.";
@@ -58,23 +43,6 @@ export function validateMemberName(value: string, existing: readonly string[]): 
   const lowered = name.toLowerCase();
   if (existing.some((member) => member.toLowerCase() === lowered)) {
     return "Ce prénom existe déjà dans l'équipe.";
-  }
-  return null;
-}
-
-export const MIN_SECONDS_PER_MEMBER = 30;
-
-/**
- * Vérifie qu'il reste au moins 30 secondes par membre pendant la Daily.
- * Sans membre, rien n'est vérifié.
- */
-export function validateTimePerMember(durationMinutes: number, memberCount: number): string | null {
-  if (memberCount < 1) {
-    return null;
-  }
-  const secondsPerMember = (durationMinutes * 60) / memberCount;
-  if (secondsPerMember < MIN_SECONDS_PER_MEMBER) {
-    return `La durée divisée par le nombre de membres doit être d'au moins ${MIN_SECONDS_PER_MEMBER} secondes.`;
   }
   return null;
 }

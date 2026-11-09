@@ -1,0 +1,11 @@
+/* Styles de l'écran de préparation : les composants communs sont dans src/styles.css. */
+.row-time {
+  align-items: center;
+}
+
+.row-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}

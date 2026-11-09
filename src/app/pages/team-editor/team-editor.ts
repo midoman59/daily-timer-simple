@@ -10,16 +10,14 @@ import {
   viewChildren,
 } from '@angular/core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  DEFAULT_DURATION_MINUTES,
   MAX_MEMBERS,
   MIN_MEMBERS,
+  memberCountLabel,
   normalizeSpaces,
-  validateDuration,
   validateMemberName,
   validateTeamName,
-  validateTimePerMember,
 } from '../../domain/team-validation';
 import { TeamStore } from '../../services/team.store';
 
@@ -31,9 +29,13 @@ function fromDomain(check: (value: string) => string | null) {
   };
 }
 
+/**
+ * Écran (b) : création ou modification d'une équipe, sans durée.
+ * Route « /equipe/nouvelle » pour la création, « /equipe/:id/modifier » pour la modification.
+ */
 @Component({
   selector: 'app-team-editor',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './team-editor.html',
   styleUrl: './team-editor.css',
 })
@@ -42,30 +44,70 @@ export class TeamEditor {
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
 
-  /** Vrai si une équipe stockée est illisible : on demande de la recréer. */
+  /** Identifiant de l'équipe modifiée, ou null pour une création. */
+  private readonly teamId = inject(ActivatedRoute).snapshot.paramMap.get('id');
+
+  /** Vrai quand l'écran modifie une équipe existante. */
+  protected readonly isEdit = this.teamId !== null;
+
+  /** Vrai si une donnée stockée est illisible : l'écran l'indique. */
   protected readonly unreadable = this.store.readError;
 
-  /** Vrai quand une équipe est déjà enregistrée : l'écran la modifie. */
-  protected readonly isEdit = this.store.team() !== null;
+  /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
+  protected readonly storageError = signal(false);
+
+  /** Vrai s'il existe déjà une équipe : la création peut alors être annulée vers « Mes équipes ». */
+  protected readonly hasTeams = this.store.teams().length > 0;
 
   private readonly title = viewChild<ElementRef<HTMLElement>>('title');
+  private readonly nameField = viewChild.required<ElementRef<HTMLInputElement>>('nameField');
+  private readonly memberField = viewChild.required<ElementRef<HTMLInputElement>>('memberField');
+  private readonly deleteButtons = viewChildren<ElementRef<HTMLButtonElement>>('deleteButton');
+
+  /** Membres saisis, dans l'ordre de saisie. */
+  protected readonly members = signal<string[]>([]);
+
+  /** Libellé du compteur : « 0 membre », « 1 membre », « 2 membres »… */
+  protected readonly countLabel = computed(() => memberCountLabel(this.members().length));
+
+  protected readonly isFull = computed(() => this.members().length >= MAX_MEMBERS);
+
+  protected readonly minMembers = MIN_MEMBERS;
+
+  /** Vrai après une tentative d'ajout : l'erreur du prénom ne s'affiche qu'à partir de là. */
+  protected readonly memberAttempted = signal(false);
+
+  protected readonly name = new FormControl('', {
+    nonNullable: true,
+    validators: [fromDomain(validateTeamName)],
+  });
+
+  protected readonly memberName = new FormControl('', {
+    nonNullable: true,
+    validators: [fromDomain((value) => validateMemberName(value, this.members()))],
+  });
 
   constructor() {
-    // À l'arrivée sur l'écran, le focus va au titre : le lecteur d'écran annonce le nouvel écran (design 4.4).
-    afterNextRender(() => this.title()?.nativeElement.focus(), { injector: this.injector });
+    // À l'arrivée sur l'écran, le focus va au titre : le lecteur d'écran annonce le nouvel écran.
+    afterNextRender(() => this.title()?.nativeElement.focus());
 
-    const team = this.store.team();
+    const team = this.teamId ? this.store.find(this.teamId) : undefined;
     if (team) {
       this.name.setValue(team.name);
-      this.duration.setValue(String(team.durationMinutes));
       this.members.set([...team.members]);
       this.syncMemberInput();
     }
   }
 
-  /** Annuler (modification seulement) : retour à la présentation, sans rien enregistrer. */
+  protected readonly heading = computed(() => (this.isEdit ? "Modifier l'équipe" : 'Nouvelle équipe'));
+
+  /** Annuler : en modification, retour à la présentation ; en création, retour à « Mes équipes ». */
   protected cancel(): void {
-    this.router.navigate(['/presentation']);
+    if (this.isEdit) {
+      this.router.navigate(['/equipe', this.teamId]);
+    } else {
+      this.router.navigate(['/equipes']);
+    }
   }
 
   protected onEscape(): void {
@@ -73,43 +115,6 @@ export class TeamEditor {
       this.cancel();
     }
   }
-
-  /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
-  protected readonly storageError = signal(false);
-
-  /** Membres saisis, dans l'ordre de saisie. */
-  protected readonly members = signal<string[]>([]);
-
-  /** Libellé du compteur : « 0 membre », « 1 membre », « 2 membres »… */
-  protected readonly countLabel = computed(() => {
-    const count = this.members().length;
-    return count <= 1 ? `${count} membre` : `${count} membres`;
-  });
-
-  protected readonly isFull = computed(() => this.members().length >= MAX_MEMBERS);
-
-  /** Vrai après une tentative d'ajout : l'erreur du prénom ne s'affiche qu'à partir de là. */
-  protected readonly memberAttempted = signal(false);
-
-  private readonly nameField = viewChild.required<ElementRef<HTMLInputElement>>('nameField');
-  private readonly durationField = viewChild.required<ElementRef<HTMLInputElement>>('durationField');
-  private readonly memberField = viewChild.required<ElementRef<HTMLInputElement>>('memberField');
-  private readonly deleteButtons = viewChildren<ElementRef<HTMLButtonElement>>('deleteButton');
-
-  protected readonly name = new FormControl('', {
-    nonNullable: true,
-    validators: [fromDomain(validateTeamName)],
-  });
-
-  protected readonly duration = new FormControl(String(DEFAULT_DURATION_MINUTES), {
-    nonNullable: true,
-    validators: [fromDomain(validateDuration)],
-  });
-
-  protected readonly memberName = new FormControl('', {
-    nonNullable: true,
-    validators: [fromDomain((value) => validateMemberName(value, this.members()))],
-  });
 
   /** Message à afficher pour un champ, seulement après qu'il a été quitté. */
   protected errorOf(control: AbstractControl): string | null {
@@ -130,30 +135,10 @@ export class TeamEditor {
     return (this.memberName.errors?.['message'] as string | undefined) ?? null;
   }
 
-  /** Durée saisie, si elle est valide ; sinon null. */
-  private validDurationMinutes(): number | null {
-    return this.duration.valid ? Number(this.duration.value.trim()) : null;
-  }
-
-  /** Message de la règle « 30 secondes par membre », affiché sous le champ durée. */
-  protected timeRuleMessage(): string | null {
-    const minutes = this.validDurationMinutes();
-    if (minutes === null) {
-      return null;
-    }
-    return validateTimePerMember(minutes, this.members().length);
-  }
-
   /** Premier motif qui empêche l'enregistrement, dans l'ordre de l'écran ; null si tout est bon. */
   protected saveBlockReason(): string | null {
     if (this.name.invalid) {
       return this.name.errors?.['message'] as string;
-    }
-    if (this.duration.invalid) {
-      return this.duration.errors?.['message'] as string;
-    }
-    if (this.timeRuleMessage()) {
-      return this.timeRuleMessage();
     }
     if (this.members().length < MIN_MEMBERS) {
       return `Ajoutez au moins ${MIN_MEMBERS} membres pour continuer.`;
@@ -172,27 +157,24 @@ export class TeamEditor {
   protected onSave(): void {
     if (!this.canSave()) {
       this.name.markAsTouched();
-      this.duration.markAsTouched();
       if (this.name.invalid) {
         this.nameField().nativeElement.focus();
-      } else if (this.duration.invalid || this.timeRuleMessage()) {
-        this.durationField().nativeElement.focus();
       } else {
         this.memberField().nativeElement.focus();
       }
       return;
     }
 
-    const persisted = this.store.save({
+    const saved = this.store.save({
+      id: this.teamId ?? undefined,
       name: normalizeSpaces(this.name.value),
-      durationMinutes: Number(this.duration.value.trim()),
       members: this.members(),
     });
-    if (!persisted) {
+    if (!saved) {
       this.storageError.set(true);
       return;
     }
-    this.router.navigate(['/presentation']);
+    this.router.navigate(['/equipe', saved.id], { state: { saved: true } });
   }
 
   protected addMember(): void {

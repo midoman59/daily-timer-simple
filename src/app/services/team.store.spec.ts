@@ -1,68 +1,121 @@
-import { TEAM_STORAGE_KEY, TeamStore } from './team.store';
+import { LEGACY_TEAM_STORAGE_KEY, TEAMS_STORAGE_KEY, TeamStore } from './team.store';
 
-describe('TeamStore (S7 : retrouver l\'équipe au rechargement)', () => {
-  const team = { name: 'Équipe Alpha', durationMinutes: 15, members: ['Léa', 'Tom'] };
+describe('TeamStore (S6, S7, S9 : équipes enregistrées et retrouvées au rechargement)', () => {
+  const alpha = { name: 'Équipe Alpha', members: ['Léa', 'Tom'] };
+  const beta = { name: 'Équipe Beta', members: ['Ana', 'Ben', 'Cam'] };
 
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it('relit l\'équipe enregistrée au démarrage, sans ressaisie', () => {
-    new TeamStore().save(team);
-    expect(new TeamStore().team()).toEqual(team);
-  });
-
-  it('n\'envoie aucune donnée hors de l\'appareil : ni fetch, ni XMLHttpRequest, ni sendBeacon', () => {
-    const fetchSpy = spyOn(window, 'fetch');
-    const xhrSpy = spyOn(XMLHttpRequest.prototype, 'open');
-    const beaconSpy = spyOn(navigator, 'sendBeacon');
-    new TeamStore().save(team);
-    expect(new TeamStore().team()).toEqual(team);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(xhrSpy).not.toHaveBeenCalled();
-    expect(beaconSpy).not.toHaveBeenCalled();
-  });
-
-  it('part d\'un état vide quand rien n\'est enregistré', () => {
+  it('démarre sans équipe quand rien n\'est enregistré', () => {
     const store = new TeamStore();
-    expect(store.team()).toBeNull();
+    expect(store.teams()).toEqual([]);
     expect(store.readError()).toBeFalse();
   });
 
-  it('signale des données illisibles sans planter (JSON invalide)', () => {
-    localStorage.setItem(TEAM_STORAGE_KEY, '{pas du json');
+  it('enregistre une équipe avec un identifiant et la retrouve au rechargement', () => {
+    const saved = new TeamStore().save(alpha);
+    expect(saved).not.toBeNull();
+    expect(saved!.id).toBeTruthy();
+    expect(new TeamStore().teams()).toEqual([saved!]);
+  });
+
+  it('n\'enregistre que le nom et les membres, sans aucune durée', () => {
+    new TeamStore().save(alpha);
+    const stored = JSON.parse(localStorage.getItem(TEAMS_STORAGE_KEY) ?? 'null');
+    const [team] = stored.teams;
+    expect(Object.keys(team).sort()).toEqual(['id', 'members', 'name']);
+  });
+
+  it('garde plusieurs équipes et les retrouve toutes', () => {
     const store = new TeamStore();
-    expect(store.team()).toBeNull();
+    store.save(alpha);
+    store.save(beta);
+    expect(new TeamStore().teams().map((team) => team.name)).toEqual(['Équipe Alpha', 'Équipe Beta']);
+  });
+
+  it('présente les équipes par ordre alphabétique', () => {
+    const store = new TeamStore();
+    store.save({ name: 'Zèbre', members: ['A', 'B'] });
+    store.save({ name: 'Alpha', members: ['A', 'B'] });
+    store.save({ name: 'équipe Mu', members: ['A', 'B'] });
+    expect(store.sortedTeams().map((team) => team.name)).toEqual(['Alpha', 'équipe Mu', 'Zèbre']);
+  });
+
+  it('modifie une équipe existante par son identifiant, sans en créer une autre', () => {
+    const store = new TeamStore();
+    const saved = store.save(alpha)!;
+    store.save({ ...saved, name: 'Équipe Alpha 2', members: ['Léa'] });
+    expect(new TeamStore().teams()).toEqual([{ id: saved.id, name: 'Équipe Alpha 2', members: ['Léa'] }]);
+  });
+
+  it('retrouve une équipe par son identifiant', () => {
+    const store = new TeamStore();
+    const saved = store.save(alpha)!;
+    store.save(beta);
+    expect(store.find(saved.id)?.name).toBe('Équipe Alpha');
+    expect(store.find('inconnu')).toBeUndefined();
+  });
+
+  it('migre l\'équipe de la version 1 en ignorant son ancienne durée', () => {
+    localStorage.setItem(
+      LEGACY_TEAM_STORAGE_KEY,
+      JSON.stringify({ version: 1, name: 'Équipe Ancienne', durationMinutes: 15, members: ['Léa', 'Tom'] }),
+    );
+    const store = new TeamStore();
+    expect(store.teams().length).toBe(1);
+    expect(store.teams()[0].name).toBe('Équipe Ancienne');
+    expect('durationMinutes' in store.teams()[0]).toBeFalse();
+    expect(localStorage.getItem(LEGACY_TEAM_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(TEAMS_STORAGE_KEY)).not.toBeNull();
+  });
+
+  it('signale des données illisibles sans planter (JSON invalide)', () => {
+    localStorage.setItem(TEAMS_STORAGE_KEY, '{pas du json');
+    const store = new TeamStore();
+    expect(store.teams()).toEqual([]);
     expect(store.readError()).toBeTrue();
   });
 
-  it('signale des données illisibles quand la forme ne correspond pas', () => {
-    localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({ version: 1, name: '', durationMinutes: 500, members: 'x' }));
+  it('ignore une équipe mal formée et signale l\'erreur, sans perdre les autres', () => {
+    localStorage.setItem(
+      TEAMS_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        teams: [
+          { id: '1', name: 'Équipe Alpha', members: ['Léa', 'Tom'] },
+          { id: '2', name: '', members: 'pas une liste' },
+        ],
+      }),
+    );
     const store = new TeamStore();
-    expect(store.team()).toBeNull();
+    expect(store.teams().map((team) => team.name)).toEqual(['Équipe Alpha']);
     expect(store.readError()).toBeTrue();
   });
 
   it('ne plante pas quand le stockage est inaccessible', () => {
     spyOn(Storage.prototype, 'getItem').and.throwError('SecurityError');
     const store = new TeamStore();
-    expect(store.team()).toBeNull();
+    expect(store.teams()).toEqual([]);
   });
 
-  it('n\'affiche pas une équipe non écrite comme enregistrée si l\'écriture échoue', () => {
-    spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
+  it('n\'ajoute pas une équipe en mémoire si l\'écriture échoue', () => {
     const store = new TeamStore();
-    expect(store.save(team)).toBeFalse();
-    expect(store.team()).toBeNull();
+    store.save(alpha);
+    spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
+    expect(store.save(beta)).toBeNull();
+    expect(store.teams().map((team) => team.name)).toEqual(['Équipe Alpha']);
   });
 
-  it('garde l\'équipe précédente en mémoire si la nouvelle écriture échoue', () => {
-    const previous = { name: 'Équipe Beta', durationMinutes: 10, members: ['Ana', 'Ben'] };
-    const store = new TeamStore();
-    expect(store.save(previous)).toBeTrue();
-    spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
-    expect(store.save(team)).toBeFalse();
-    expect(store.team()).toEqual(previous);
-    expect(JSON.parse(localStorage.getItem(TEAM_STORAGE_KEY) ?? 'null').name).toBe('Équipe Beta');
+  it('n\'envoie aucune donnée hors de l\'appareil : ni fetch, ni XMLHttpRequest, ni sendBeacon', () => {
+    const fetchSpy = spyOn(window, 'fetch');
+    const xhrSpy = spyOn(XMLHttpRequest.prototype, 'open');
+    const beaconSpy = spyOn(navigator, 'sendBeacon');
+    new TeamStore().save(alpha);
+    expect(new TeamStore().teams().length).toBe(1);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(xhrSpy).not.toHaveBeenCalled();
+    expect(beaconSpy).not.toHaveBeenCalled();
   });
 });

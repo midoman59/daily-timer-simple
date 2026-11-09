@@ -1,317 +1,190 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { MyTeams } from '../my-teams/my-teams';
+import { TeamStore } from '../../services/team.store';
 import { TeamEditor } from './team-editor';
 
-describe('TeamEditor (S1 : nom et durée)', () => {
-  let fixture: ComponentFixture<TeamEditor>;
-  let el: HTMLElement;
+/** Ouvre l'écran à l'URL donnée et attend le rendu. */
+async function open(url: string) {
+  const harness = await RouterTestingHarness.create(url);
+  const editor = harness.routeNativeElement as HTMLElement;
+  await harness.fixture.whenStable();
+  return { harness, el: harness.fixture.nativeElement as HTMLElement, editor };
+}
 
+function input(el: HTMLElement, id: string): HTMLInputElement {
+  return el.querySelector<HTMLInputElement>(`#${id}`)!;
+}
+
+function button(el: HTMLElement, label: string): HTMLButtonElement {
+  return Array.from(el.querySelectorAll<HTMLButtonElement>('button, a')).find(
+    (b) => b.textContent?.trim() === label,
+  ) as HTMLButtonElement;
+}
+
+/** Saisit un prénom et valide avec Entrée, comme le fait l'utilisateur. */
+async function addMember(harness: RouterTestingHarness, el: HTMLElement, name: string): Promise<void> {
+  const field = input(el, 'member-name');
+  field.value = name;
+  field.dispatchEvent(new Event('input'));
+  field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+  harness.fixture.detectChanges();
+  await harness.fixture.whenStable();
+}
+
+function typeName(harness: RouterTestingHarness, el: HTMLElement, value: string): void {
+  const field = input(el, 'team-name');
+  field.value = value;
+  field.dispatchEvent(new Event('input'));
+  field.dispatchEvent(new Event('blur'));
+  harness.fixture.detectChanges();
+}
+
+describe('TeamEditor (S3 à S7 : création et modification sans durée)', () => {
   beforeEach(() => {
     localStorage.clear();
-    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
-    fixture = TestBed.createComponent(TeamEditor);
-    fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          { path: 'equipe/nouvelle', component: TeamEditor },
+          { path: 'equipe/:id/modifier', component: TeamEditor },
+          { path: '**', component: MyTeams },
+        ]),
+      ],
+    });
   });
 
-  it("affiche les champs « Nom d'équipe » et « Durée de la Daily »", () => {
-    expect(el.querySelector<HTMLInputElement>('#team-name')).not.toBeNull();
-    expect(el.querySelector<HTMLInputElement>('#duration')).not.toBeNull();
-    expect(el.querySelector('label[for="team-name"]')?.textContent).toContain("Nom d'équipe");
-    expect(el.querySelector('label[for="duration"]')?.textContent).toContain('Durée de la Daily');
+  describe('création', () => {
+    it('n\'affiche aucun champ de durée ni message de durée (S3)', async () => {
+      const { el } = await open('/equipe/nouvelle');
+      expect(el.querySelector('#duration')).toBeNull();
+      expect(el.textContent).not.toContain('Durée');
+      expect(el.textContent).not.toContain('min');
+    });
+
+    it('a pour titre « Nouvelle équipe » et met le focus dessus à l\'arrivée', async () => {
+      const { el } = await open('/equipe/nouvelle');
+      expect(el.querySelector('h1')?.textContent?.trim()).toBe('Nouvelle équipe');
+      expect(document.activeElement).toBe(el.querySelector('h1'));
+    });
+
+    it('ajoute les membres en fin de liste avec Entrée, vide le champ et met à jour le compteur (S3, S4)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'Léa');
+      await addMember(harness, el, 'Tom');
+      const names = Array.from(el.querySelectorAll('.member-list .row-title')).map((n) => n.textContent?.trim());
+      expect(names).toEqual(['Léa', 'Tom']);
+      expect(input(el, 'member-name').value).toBe('');
+      expect(el.querySelector('.counter')?.textContent?.trim()).toBe('2 membres');
+    });
+
+    it('refuse un doublon et un prénom vide avec un message lié au champ (S5)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'Thomas');
+      await addMember(harness, el, 'thomas');
+      expect(el.textContent).toContain("Ce prénom existe déjà dans l'équipe.");
+      expect(input(el, 'member-name').getAttribute('aria-describedby')).toBe('member-name-error');
+      expect(el.querySelectorAll('.member-list .row').length).toBe(1);
+    });
+
+    it('garde « Enregistrer l\'équipe » inactif sans nom ou avec moins de 2 membres (S5)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      const save = button(el, "Enregistrer l'équipe");
+      expect(save.getAttribute('aria-disabled')).toBe('true');
+      expect(el.textContent).toContain('Ajoutez au moins 2 membres pour continuer.');
+      typeName(harness, el, 'Équipe Alpha');
+      await addMember(harness, el, 'Léa');
+      expect(save.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('refuse un nom au-delà de 50 caractères avec son message', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      typeName(harness, el, 'a'.repeat(51));
+      expect(el.textContent).toContain('Le nom d\'équipe ne dépasse pas 50 caractères.');
+    });
+
+    it('enregistre l\'équipe, navigue vers sa présentation et la conserve (S6, S9)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      typeName(harness, el, '  Équipe   Alpha ');
+      await addMember(harness, el, 'Léa');
+      await addMember(harness, el, 'Tom');
+      button(el, "Enregistrer l'équipe").click();
+      await harness.fixture.whenStable();
+
+      const router = TestBed.inject(Router);
+      const [saved] = TestBed.inject(TeamStore).teams();
+      expect(saved.name).toBe('Équipe Alpha');
+      expect(saved.members).toEqual(['Léa', 'Tom']);
+      expect(router.url).toBe(`/equipe/${saved.id}`);
+    });
+
+    it('propose Annuler vers « Mes équipes » seulement s\'il existe déjà une équipe', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      expect(button(el, 'Annuler')).toBeUndefined();
+      TestBed.inject(TeamStore).save({ name: 'Existante', members: ['Léa', 'Tom'] });
+      await harness.navigateByUrl('/equipes');
+      await harness.navigateByUrl('/equipe/nouvelle');
+      harness.fixture.detectChanges();
+      expect(button(el, 'Annuler')).toBeDefined();
+    });
+
+    it('garde le focus dans la liste après le 15e membre (B1)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      const names = ['Ana', 'Ben', 'Cam', 'Dan', 'Eva', 'Fred', 'Gil', 'Hana', 'Ivan', 'Jade', 'Karl', 'Lou', 'Max', 'Nina', 'Omar'];
+      for (const name of names) {
+        await addMember(harness, el, name);
+      }
+      expect(el.textContent).toContain('Une équipe ne peut pas dépasser 15 membres.');
+      expect(input(el, 'member-name').disabled).toBeTrue();
+      expect(document.activeElement?.getAttribute('aria-label')).toBe('Supprimer Omar');
+    });
+
+    it('affiche le bandeau d\'illisibilité quand une donnée stockée est illisible', async () => {
+      localStorage.setItem('daily-timer-simple.teams.v2', '{pas du json');
+      const { el } = await open('/equipe/nouvelle');
+      expect(el.textContent).toContain("Les données de l'équipe sont illisibles. Recréez l'équipe.");
+    });
   });
 
-  it('pré-remplit la durée à 15 minutes', () => {
-    expect(el.querySelector<HTMLInputElement>('#duration')?.value).toBe('15');
-  });
+  describe('modification', () => {
+    it('ouvre l\'écran prérempli avec le nom et les membres de l\'équipe (S7)', async () => {
+      const team = TestBed.inject(TeamStore).save({ name: 'Équipe Beta', members: ['Ana', 'Ben'] })!;
+      const { el } = await open(`/equipe/${team.id}/modifier`);
+      expect(el.querySelector('h1')?.textContent?.trim()).toBe("Modifier l'équipe");
+      expect(input(el, 'team-name').value).toBe('Équipe Beta');
+      const names = Array.from(el.querySelectorAll('.member-list .row-title')).map((n) => n.textContent?.trim());
+      expect(names).toEqual(['Ana', 'Ben']);
+    });
 
-  it('place le focus sur le titre à l\'ouverture (création)', () => {
-    expect(document.activeElement).toBe(el.querySelector('h1'));
-  });
+    it('enregistre les changements sur la même équipe, sans en créer une autre (S7)', async () => {
+      const store = TestBed.inject(TeamStore);
+      const team = store.save({ name: 'Équipe Beta', members: ['Ana', 'Ben'] })!;
+      const { harness, el } = await open(`/equipe/${team.id}/modifier`);
+      typeName(harness, el, 'Équipe Bêta');
+      button(el, "Enregistrer l'équipe").click();
+      await harness.fixture.whenStable();
+      expect(store.teams()).toEqual([{ id: team.id, name: 'Équipe Bêta', members: ['Ana', 'Ben'] }]);
+      expect(TestBed.inject(Router).url).toBe(`/equipe/${team.id}`);
+    });
 
-  it('affiche le message de durée non entière pour « 7,5 »', () => {
-    const input = el.querySelector<HTMLInputElement>('#duration')!;
-    input.value = '7,5';
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new Event('blur'));
-    fixture.detectChanges();
-    expect(el.textContent).toContain('Saisissez un nombre entier de minutes.');
-  });
-});
+    it('Annuler revient à la présentation sans rien enregistrer (S7)', async () => {
+      const store = TestBed.inject(TeamStore);
+      const team = store.save({ name: 'Équipe Beta', members: ['Ana', 'Ben'] })!;
+      const { harness, el } = await open(`/equipe/${team.id}/modifier`);
+      typeName(harness, el, 'Autre nom');
+      button(el, 'Annuler').click();
+      await harness.fixture.whenStable();
+      expect(TestBed.inject(Router).url).toBe(`/equipe/${team.id}`);
+      expect(store.find(team.id)?.name).toBe('Équipe Beta');
+    });
 
-describe('TeamEditor (S2 : ajouter des membres par prénom)', () => {
-  let fixture: ComponentFixture<TeamEditor>;
-  let el: HTMLElement;
-
-  function typeInto(input: HTMLInputElement, value: string): void {
-    input.value = value;
-    input.dispatchEvent(new Event('input'));
-  }
-
-  function pressEnter(input: HTMLInputElement): void {
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    fixture.detectChanges();
-  }
-
-  function memberNames(): string[] {
-    return Array.from(el.querySelectorAll('.member-list li .member-name')).map((li) =>
-      (li.textContent ?? '').trim(),
-    );
-  }
-
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
-    fixture = TestBed.createComponent(TeamEditor);
-    fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
-  });
-
-  it('ajoute un membre en fin de liste avec Entrée', () => {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    typeInto(input, 'Léa');
-    pressEnter(input);
-    typeInto(input, 'Tom');
-    pressEnter(input);
-    expect(memberNames()).toEqual(['Léa', 'Tom']);
-  });
-
-  it('ajoute un membre avec le bouton « Ajouter »', () => {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    typeInto(input, 'Léa');
-    const button = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Ajouter'))!;
-    button.click();
-    fixture.detectChanges();
-    expect(memberNames()).toEqual(['Léa']);
-  });
-
-  it('vide le champ et reprend le focus après chaque ajout', () => {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    typeInto(input, 'Léa');
-    pressEnter(input);
-    expect(input.value).toBe('');
-    expect(document.activeElement).toBe(input);
-  });
-
-  it('refuse un prénom vide avec le message « Saisissez un prénom. »', () => {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    pressEnter(input);
-    expect(memberNames()).toEqual([]);
-    expect(el.textContent).toContain('Saisissez un prénom.');
-  });
-});
-
-describe('TeamEditor (S3 : compteur de membres)', () => {
-  let fixture: ComponentFixture<TeamEditor>;
-  let el: HTMLElement;
-
-  function addName(name: string): void {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    input.value = name;
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    fixture.detectChanges();
-  }
-
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
-    fixture = TestBed.createComponent(TeamEditor);
-    fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
-  });
-
-  function counter(): HTMLElement {
-    return el.querySelector<HTMLElement>('.counter')!;
-  }
-
-  it('affiche « 0 membre » puis se met à jour à chaque ajout', () => {
-    expect(counter().textContent?.trim()).toBe('0 membre');
-    addName('Léa');
-    expect(counter().textContent?.trim()).toBe('1 membre');
-    addName('Tom');
-    expect(counter().textContent?.trim()).toBe('2 membres');
-  });
-
-  it('annonce le compteur aux lecteurs d\'écran', () => {
-    expect(counter().getAttribute('role')).toBe('status');
-    expect(counter().getAttribute('aria-live')).toBe('polite');
-  });
-
-  it('désactive le champ au 15e membre avec le message de maximum', () => {
-    for (let i = 1; i <= 15; i++) {
-      addName(`Membre${String.fromCharCode(64 + i)}`);
-    }
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    expect(counter().textContent?.trim()).toBe('15 membres');
-    expect(input.disabled).toBeTrue();
-    expect(el.textContent).toContain('Une équipe ne peut pas dépasser 15 membres.');
-  });
-
-  it('garde le focus dans la liste après le 15e membre ajouté avec Entrée', () => {
-    for (let i = 1; i <= 15; i++) {
-      addName(`Membre${String.fromCharCode(64 + i)}`);
-    }
-    const deleteButtons = el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn');
-    expect(document.activeElement).toBe(deleteButtons[deleteButtons.length - 1]);
-  });
-
-  it('garde le focus dans la liste après le 15e membre ajouté avec le bouton « Ajouter »', () => {
-    for (let i = 1; i <= 14; i++) {
-      addName(`Membre${String.fromCharCode(64 + i)}`);
-    }
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    input.value = `Membre${String.fromCharCode(64 + 15)}`;
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    const addButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
-      b.textContent?.includes('Ajouter'),
-    )!;
-    addButton.focus();
-    addButton.click();
-    fixture.detectChanges();
-    const deleteButtons = el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn');
-    expect(addButton.disabled).toBeTrue();
-    expect(document.activeElement).toBe(deleteButtons[deleteButtons.length - 1]);
-  });
-});
-
-describe('TeamEditor (S4 : retirer un membre avant enregistrement)', () => {
-  let fixture: ComponentFixture<TeamEditor>;
-  let el: HTMLElement;
-
-  function addName(name: string): void {
-    const input = el.querySelector<HTMLInputElement>('#member-name')!;
-    input.value = name;
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-    fixture.detectChanges();
-  }
-
-  function deleteButtons(): HTMLButtonElement[] {
-    return Array.from(el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn'));
-  }
-
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
-    fixture = TestBed.createComponent(TeamEditor);
-    fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
-    addName('Léa');
-    addName('Tom');
-    addName('Ana');
-  });
-
-  it('a un bouton « Supprimer » nommé pour chaque membre', () => {
-    expect(deleteButtons().map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Supprimer Léa',
-      'Supprimer Tom',
-      'Supprimer Ana',
-    ]);
-  });
-
-  it('retire la ligne et décrémente le compteur', () => {
-    deleteButtons()[1].click();
-    fixture.detectChanges();
-    const names = Array.from(el.querySelectorAll('.member-list .member-name')).map((n) => n.textContent?.trim());
-    expect(names).toEqual(['Léa', 'Ana']);
-    expect(el.querySelector('.counter')?.textContent?.trim()).toBe('2 membres');
-  });
-
-  it('permet de rajouter un prénom supprimé', () => {
-    deleteButtons()[0].click();
-    fixture.detectChanges();
-    addName('Léa');
-    const names = Array.from(el.querySelectorAll('.member-list .member-name')).map((n) => n.textContent?.trim());
-    expect(names).toEqual(['Tom', 'Ana', 'Léa']);
-  });
-
-  it('place le focus sur le bouton Supprimer suivant, ou sur le champ Prénom', () => {
-    deleteButtons()[0].click();
-    fixture.detectChanges();
-    expect(document.activeElement).toBe(deleteButtons()[0]);
-    expect(deleteButtons()[0].getAttribute('aria-label')).toBe('Supprimer Tom');
-
-    deleteButtons()[1].click();
-    fixture.detectChanges();
-    expect(document.activeElement).toBe(el.querySelector('#member-name'));
-  });
-});
-
-describe('TeamEditor (S5 : valider les champs obligatoires)', () => {
-  let fixture: ComponentFixture<TeamEditor>;
-  let el: HTMLElement;
-
-  function typeInto(selector: string, value: string): void {
-    const input = el.querySelector<HTMLInputElement>(selector)!;
-    input.value = value;
-    input.dispatchEvent(new Event('input'));
-    input.dispatchEvent(new Event('blur'));
-    fixture.detectChanges();
-  }
-
-  function addName(name: string): void {
-    typeInto('#member-name', name);
-    el.querySelector<HTMLInputElement>('#member-name')!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Enter' }),
-    );
-    fixture.detectChanges();
-  }
-
-  function saveButton(): HTMLButtonElement {
-    return Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
-      b.textContent?.includes("Enregistrer l'équipe"),
-    )!;
-  }
-
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
-    fixture = TestBed.createComponent(TeamEditor);
-    fixture.detectChanges();
-    el = fixture.nativeElement as HTMLElement;
-  });
-
-  it('garde « Enregistrer l\'équipe » inactif tant que le nom est vide', () => {
-    addName('Léa');
-    addName('Tom');
-    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
-    typeInto('#team-name', 'Équipe A');
-    expect(saveButton().getAttribute('aria-disabled')).toBeNull();
-  });
-
-  it('reste inactif avec moins de 2 membres ou une durée invalide', () => {
-    typeInto('#team-name', 'Équipe A');
-    addName('Léa');
-    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
-    addName('Tom');
-    expect(saveButton().getAttribute('aria-disabled')).toBeNull();
-    typeInto('#duration', '7,5');
-    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('bloque si la durée ne laisse pas 30 secondes par membre', () => {
-    typeInto('#team-name', 'Équipe A');
-    typeInto('#duration', '1');
-    addName('Léa');
-    addName('Tom');
-    addName('Ana');
-    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
-    expect(el.textContent).toContain('au moins 30 secondes');
-  });
-
-  it('place le focus sur le premier champ fautif après un clic sur un bouton inactif', () => {
-    saveButton().click();
-    fixture.detectChanges();
-    expect(document.activeElement).toBe(el.querySelector('#team-name'));
-    expect(el.textContent).toContain('Donnez un nom à votre équipe.');
-  });
-
-  it('ne rend pas la barre d\'action muette : une aide explique ce qui manque', () => {
-    typeInto('#team-name', 'Équipe A');
-    fixture.detectChanges();
-    expect(saveButton().getAttribute('aria-describedby')).toBe('save-hint');
-    expect(el.querySelector('#save-hint')?.textContent).toContain('Ajoutez au moins 2 membres');
+    it('Échap équivaut à Annuler en modification', async () => {
+      const team = TestBed.inject(TeamStore).save({ name: 'Équipe Beta', members: ['Ana', 'Ben'] })!;
+      const { harness, el } = await open(`/equipe/${team.id}/modifier`);
+      el.querySelector('main')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await harness.fixture.whenStable();
+      expect(TestBed.inject(Router).url).toBe(`/equipe/${team.id}`);
+    });
   });
 });

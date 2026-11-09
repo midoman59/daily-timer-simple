@@ -1,33 +1,44 @@
-@if (store.team(); as team) {
-  <main class="page">
-    <section class="card" aria-labelledby="team-title">
-      <h1 #title id="team-title" class="page-title" tabindex="-1">{{ team.name }}</h1>
-      <p class="meta">{{ team.durationMinutes }} min · {{ team.members.length }} membres</p>
+@if (team(); as team) {
+  <main class="screen">
+    <a class="back-link" routerLink="/equipes">‹ Mes équipes</a>
 
-      <ol class="member-list">
-        @for (member of team.members; track member) {
-          <li class="member-row">
-            <span class="member-order">{{ $index + 1 }}</span>
-            <span class="member-name">{{ member }}</span>
+    @if (justSaved()) {
+      <p class="banner banner-success" role="status">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <span class="banner-text">Équipe enregistrée.</span>
+      </p>
+    }
+
+    <h1 #title class="screen-title" tabindex="-1">{{ team.name }}</h1>
+    <p class="meta">{{ memberCountLabel(team.members.length) }}</p>
+
+    <div class="group">
+      <ol class="member-list" aria-label="Membres dans l'ordre de saisie">
+        @for (member of team.members; track $index) {
+          <li class="row">
+            <span class="row-order">{{ $index + 1 }}</span>
+            <span class="row-title">{{ member }}</span>
           </li>
         }
       </ol>
-    </section>
+    </div>
 
-    <div class="actions">
-      <a class="btn btn-secondary" routerLink="/equipe">Modifier l'équipe</a>
+    @if (team.members.length < minMembers) {
+      <p id="start-hint" class="help">Ajoutez au moins {{ minMembers }} membres pour démarrer.</p>
+    }
+
+    <div class="action-bar">
+      <a class="btn btn-secondary" [routerLink]="['/equipe', team.id, 'modifier']">Modifier l'équipe</a>
       <button
         type="button"
         class="btn btn-primary"
-        [attr.aria-disabled]="team.members.length < 2 ? 'true' : null"
-        [attr.aria-describedby]="team.members.length < 2 ? 'start-hint' : null"
+        [attr.aria-disabled]="team.members.length < minMembers ? 'true' : null"
+        [attr.aria-describedby]="team.members.length < minMembers ? 'start-hint' : null"
+        [class.is-disabled]="team.members.length < minMembers"
         (click)="startDaily()"
       >
         Démarrer une Daily
       </button>
-      @if (team.members.length < 2) {
-        <p id="start-hint" class="hint">Ajoutez au moins 2 membres pour démarrer.</p>
-      }
     </div>
   </main>
 }

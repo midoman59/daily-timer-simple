@@ -1,41 +1,68 @@
-@if (team(); as team) {
+@if (timer.session(); as session) {
   <main class="daily" [attr.inert]="confirming() ? '' : null">
-    <h1 #heading class="team-title" tabindex="-1">{{ team.name }}</h1>
+    <header class="daily-head">
+      <h1 #heading class="daily-team" tabindex="-1">{{ session.teamName }}</h1>
+      <p class="meta">{{ modeLabel() }}</p>
+    </header>
 
-    <div class="clock-area">
-      <div class="overrun-slot">
-        @if (timer.isOverrun()) {
-          <p class="overrun-title">Temps dépassé</p>
-        }
-      </div>
+    <section class="clock-area">
+      <p class="current-name">{{ timer.current()?.name ?? 'Daily terminée' }}</p>
+      <p class="overrun-title" [class.is-hidden]="!timer.isOverrun()">Temps dépassé</p>
 
       <p
         class="clock"
         role="timer"
-        aria-label="Temps restant"
+        [attr.aria-label]="clockLabel()"
         [class.is-overrun]="timer.isOverrun()"
       >{{ timer.countdown() }}</p>
 
       <p class="planned">
         @if (timer.isOverrun()) {
           <span class="overrun-value">+{{ timer.overrunLabel() }}</span>
-        } @else {
-          sur {{ team.durationMinutes }} min
+        } @else if (timer.current(); as slot) {
+          Temps prévu : {{ slot.allottedSeconds / 60 }}:00
         }
       </p>
-    </div>
 
-    <ol class="member-list">
-      @for (member of team.members; track member) {
-        <li class="member-row">
-          <span class="member-order">{{ $index + 1 }}</span>
-          <span class="member-name">{{ member }}</span>
+      @if (timer.current()) {
+        <button type="button" class="btn btn-secondary btn-compact" (click)="pass(currentIndex())">Passer ce membre</button>
+      }
+    </section>
+
+    <ol class="member-list" aria-label="Ordre de passage">
+      @for (slot of timer.run()?.order ?? []; track $index; let i = $index) {
+        <li class="row" [class.is-current]="slot.status === 'current'">
+          <span class="row-order">{{ i + 1 }}</span>
+          <span class="row-title" [class.is-passed]="slot.status === 'passed'">{{ slot.name }}</span>
+          @switch (slot.status) {
+            @case ('current') {
+              <span class="row-status is-accent">En cours</span>
+            }
+            @case ('done') {
+              <span class="row-status is-success">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                fait
+              </span>
+            }
+            @case ('passed') {
+              <span class="row-status">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 18L18 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+                passé
+              </span>
+            }
+            @default {
+              <button type="button" class="btn-text btn-compact" [attr.aria-label]="'Passer ' + slot.name" (click)="pass(i)">Passer</button>
+            }
+          }
         </li>
       }
     </ol>
 
-    <div class="actions">
-      <button #stopTrigger type="button" class="btn btn-danger" (click)="askStop()">Arrêter la Daily</button>
+    <div class="action-bar daily-actions">
+      <button #primaryButton type="button" class="btn btn-primary" (click)="primary()">
+        {{ endsDaily() ? 'Terminer la Daily' : 'Passer au suivant' }}
+      </button>
+      <button #stopTrigger type="button" class="btn btn-text btn-danger" (click)="askStop()">Arrêter la Daily</button>
     </div>
 
     <p class="sr-only" role="status">{{ announcement() }}</p>
@@ -53,10 +80,10 @@
         (keydown)="onDialogKeydown($event)"
       >
         <h2 id="stop-title" class="dialog-title">Arrêter la Daily ?</h2>
-        <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera.</p>
+        <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera. Aucune Daily ne sera enregistrée.</p>
         <div class="dialog-actions">
           <button #continueButton type="button" class="btn btn-primary" (click)="continueDaily()">Continuer</button>
-          <button #confirmStop type="button" class="btn btn-danger" (click)="stopDaily()">Arrêter</button>
+          <button #confirmStop type="button" class="btn btn-secondary btn-danger" (click)="stopDaily()">Arrêter</button>
         </div>
       </div>
     </div>

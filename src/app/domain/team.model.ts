@@ -1,6 +1,9 @@
-/** Équipe enregistrée : une seule par appareil. Les membres gardent l'ordre de saisie. */
+/**
+ * Équipe enregistrée sur l'appareil. Elle ne contient que son nom et ses membres :
+ * le temps de parole se choisit à chaque Daily. Les membres gardent l'ordre de saisie.
+ */
 export interface Team {
+  id: string;
   name: string;
-  durationMinutes: number;
   members: string[];
 }

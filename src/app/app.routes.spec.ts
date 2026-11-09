@@ -1,47 +1,73 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
-import { TEAM_STORAGE_KEY, TeamStore } from './services/team.store';
+import { CLOCK, DailyTimerService } from './services/daily-timer.service';
+import { TeamStore } from './services/team.store';
 
-describe('Routes (S7 : ouverture selon l\'équipe enregistrée)', () => {
-  let router: Router;
+describe('Routes (S1 : accueil selon les équipes, S9 : rechargement)', () => {
+  let team: { id: string };
 
-  function setup(): void {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
-    router = TestBed.inject(Router);
+  function configure(): void {
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), { provide: CLOCK, useValue: () => 0 }],
+    });
   }
 
   beforeEach(() => {
     localStorage.clear();
+    configure();
+    team = TestBed.inject(TeamStore).save({ name: 'Alpha', members: ['Léa', 'Tom'] })!;
   });
 
-  it('ouvre la présentation au chargement quand une équipe existe', async () => {
-    localStorage.setItem(
-      TEAM_STORAGE_KEY,
-      JSON.stringify({ version: 1, name: 'Alpha', durationMinutes: 15, members: ['Léa', 'Tom'] }),
-    );
-    setup();
-    await router.navigateByUrl('/');
-    expect(router.url).toBe('/presentation');
+  /** Ouvre l'URL et renvoie l'URL finale, après redirections. */
+  async function open(url: string): Promise<string> {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url);
+    await harness.fixture.whenStable();
+    return TestBed.inject(Router).url;
+  }
+
+  it('déclare les écrans attendus', () => {
+    const paths = routes.map((route) => route.path);
+    expect(paths).toEqual([
+      '',
+      'equipes',
+      'equipe',
+      'equipe/nouvelle',
+      'equipe/:id',
+      'equipe/:id/modifier',
+      'equipe/:id/preparer',
+      'equipe/:id/daily',
+      '**',
+    ]);
   });
 
-  it('ouvre l\'écran de création quand aucune équipe n\'existe', async () => {
-    setup();
-    await router.navigateByUrl('/');
-    expect(router.url).toBe('/equipe');
+  it('ouvre « Mes équipes » à l\'accueil quand une équipe existe', async () => {
+    expect(await open('/')).toBe('/equipes');
   });
 
-  it('renvoie vers l\'écran de création avec le bandeau quand les données sont illisibles', async () => {
-    localStorage.setItem(TEAM_STORAGE_KEY, '{pas du json');
-    setup();
-    await router.navigateByUrl('/presentation');
-    expect(router.url).toBe('/equipe');
-    expect(TestBed.inject(TeamStore).readError()).toBeTrue();
+  it('ouvre la création à l\'accueil quand aucune équipe n\'existe', async () => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
+    configure();
+    expect(await open('/')).toBe('/equipe/nouvelle');
   });
 
-  it('renvoie une adresse inconnue vers la bonne page', async () => {
-    setup();
-    await router.navigateByUrl('/n-importe-quoi');
-    expect(router.url).toBe('/equipe');
+  it('ouvre la création à l\'adresse /equipe', async () => {
+    expect(await open('/equipe')).toBe('/equipe/nouvelle');
+  });
+
+  it('renvoie à l\'accueil quand l\'équipe demandée n\'existe pas', async () => {
+    expect(await open('/equipe/inconnue')).toBe('/equipes');
+  });
+
+  it('ouvre la présentation de l\'équipe demandée', async () => {
+    expect(await open(`/equipe/${team.id}`)).toBe(`/equipe/${team.id}`);
+  });
+
+  it('ne lance pas la Daily au rechargement : la Daily renvoie à la présentation', async () => {
+    expect(await open(`/equipe/${team.id}/daily`)).toBe(`/equipe/${team.id}`);
+    expect(TestBed.inject(DailyTimerService).session()).toBeNull();
   });
 });

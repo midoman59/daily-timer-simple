@@ -1,27 +1,31 @@
-import {
-  DEFAULT_DURATION_MINUTES,
-  validateDuration,
-  validateMemberName,
-  validateTimePerMember,
-} from './team-validation';
+import { memberCountLabel, validateMemberName, validateTeamName } from './team-validation';
 
-describe('validateDuration (S1)', () => {
-  it('vaut 15 minutes par défaut', () => {
-    expect(DEFAULT_DURATION_MINUTES).toBe(15);
-  });
-
-  it('accepte un entier entre 1 et 120', () => {
-    expect(validateDuration('15')).toBeNull();
-    expect(validateDuration('1')).toBeNull();
-    expect(validateDuration('120')).toBeNull();
-  });
-
-  it('refuse une valeur décimale', () => {
-    expect(validateDuration('7,5')).toBe('Saisissez un nombre entier de minutes.');
+describe('memberCountLabel (S4, S8)', () => {
+  it('accorde le mot membre selon le nombre', () => {
+    expect(memberCountLabel(0)).toBe('0 membre');
+    expect(memberCountLabel(1)).toBe('1 membre');
+    expect(memberCountLabel(2)).toBe('2 membres');
+    expect(memberCountLabel(15)).toBe('15 membres');
   });
 });
 
-describe('validateMemberName (S2, S5)', () => {
+describe('validateTeamName (S3, S5)', () => {
+  it('refuse un nom vide ou composé d\'espaces', () => {
+    expect(validateTeamName('')).toBe('Donnez un nom à votre équipe.');
+    expect(validateTeamName('   ')).toBe('Donnez un nom à votre équipe.');
+  });
+
+  it('accepte un nom de 50 caractères et refuse le 51e', () => {
+    expect(validateTeamName('a'.repeat(50))).toBeNull();
+    expect(validateTeamName('a'.repeat(51))).toBe('Le nom d\'équipe ne dépasse pas 50 caractères.');
+  });
+
+  it('mesure la longueur après retrait des espaces superflus', () => {
+    expect(validateTeamName(`  ${'a'.repeat(50)}  `)).toBeNull();
+  });
+});
+
+describe('validateMemberName (S3, S5)', () => {
   it('refuse un prénom vide ou composé d\'espaces', () => {
     expect(validateMemberName('', [])).toBe('Saisissez un prénom.');
     expect(validateMemberName('   ', [])).toBe('Saisissez un prénom.');
@@ -41,28 +45,12 @@ describe('validateMemberName (S2, S5)', () => {
 
   it('limite le prénom à 30 caractères', () => {
     expect(validateMemberName('a'.repeat(30), [])).toBeNull();
-    expect(validateMemberName('a'.repeat(31), [])).toBe(
-      'Le prénom ne peut pas dépasser 30 caractères.',
-    );
+    expect(validateMemberName('a'.repeat(31), [])).toBe('Le prénom ne dépasse pas 30 caractères.');
   });
 
   it('refuse un doublon insensible à la casse et aux espaces, sensible aux accents', () => {
     expect(validateMemberName('thomas', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('  Thomas  ', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('Lea', ['Léa'])).toBeNull();
-  });
-});
-
-describe('validateTimePerMember (S5)', () => {
-  it('exige au moins 30 secondes par membre', () => {
-    expect(validateTimePerMember(15, 15)).toBeNull();
-    expect(validateTimePerMember(1, 2)).toBeNull();
-    expect(validateTimePerMember(1, 3)).toBe(
-      'La durée divisée par le nombre de membres doit être d\'au moins 30 secondes.',
-    );
-  });
-
-  it('ne se prononce pas sans membre', () => {
-    expect(validateTimePerMember(1, 0)).toBeNull();
   });
 });

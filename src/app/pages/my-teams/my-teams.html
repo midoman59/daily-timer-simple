@@ -1,0 +1,28 @@
+<main class="screen">
+  <header class="screen-head">
+    <h1 #title class="screen-title" tabindex="-1">Mes équipes</h1>
+    <a class="btn btn-primary screen-head-action" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
+  </header>
+
+  @if (store.readError()) {
+    <p class="banner banner-error" role="alert">
+      <span class="banner-text">Certaines données de l'équipe sont illisibles. Recréez l'équipe.</span>
+    </p>
+  }
+
+  @if (store.sortedTeams().length > 0) {
+    <ul class="group">
+      @for (team of store.sortedTeams(); track team.id) {
+        <li class="row">
+          <div class="row-main">
+            <span class="row-title">{{ team.name }}</span>
+            <span class="row-meta">{{ memberCountLabel(team.members.length) }}</span>
+          </div>
+          <a class="btn btn-secondary btn-compact" [routerLink]="['/equipe', team.id]" [attr.aria-label]="'Ouvrir ' + team.name">Ouvrir</a>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="help">Aucune équipe pour l'instant.</p>
+  }
+</main>

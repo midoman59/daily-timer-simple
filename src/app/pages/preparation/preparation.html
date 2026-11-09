@@ -1,0 +1,67 @@
+@if (team(); as team) {
+  <main class="screen">
+    <a class="back-link" [routerLink]="['/equipe', team.id]">‹ Présentation</a>
+
+    <h1 #title class="screen-title" tabindex="-1">Préparer la Daily</h1>
+    <p class="meta">{{ team.name }}</p>
+
+    <div class="section-head">
+      <h2 id="time-heading" class="section-label">Temps de parole</h2>
+      <button type="button" class="btn-text" (click)="applyToAll()">Appliquer à tous</button>
+    </div>
+
+    <div class="group">
+      <ol class="member-list" aria-labelledby="time-heading">
+        @for (member of team.members; track $index; let i = $index) {
+          <li class="row row-time">
+            <span class="row-order">{{ i + 1 }}</span>
+            <div class="row-main">
+              <label class="row-title" [attr.for]="'minutes-' + i">{{ member }}</label>
+              @if (timeError(i); as message) {
+                <span [id]="'minutes-' + i + '-error'" class="field-error">{{ message }}</span>
+              }
+            </div>
+            <select
+              #minuteField
+              class="select"
+              [id]="'minutes-' + i"
+              [attr.aria-invalid]="timeError(i) ? 'true' : null"
+              [attr.aria-describedby]="timeError(i) ? 'minutes-' + i + '-error' : null"
+              (change)="setMinutes(i, $any($event.target).value)"
+            >
+              @for (option of options; track option) {
+                <option [value]="option" [selected]="minutes()[i] === option">{{ option }} min</option>
+              }
+            </select>
+          </li>
+        }
+      </ol>
+    </div>
+
+    <h2 id="order-heading" class="section-label">Ordre de passage</h2>
+    <div class="group segmented" role="radiogroup" aria-labelledby="order-heading">
+      <label class="segment" [class.is-active]="order() === 'team'">
+        <input type="radio" name="order" value="team" [checked]="order() === 'team'" (change)="setOrder('team')" />
+        <span>Ordre de l'équipe</span>
+      </label>
+      <label class="segment" [class.is-active]="order() === 'random'">
+        <input type="radio" name="order" value="random" [checked]="order() === 'random'" (change)="setOrder('random')" />
+        <span>Ordre aléatoire</span>
+      </label>
+    </div>
+    <p class="help">Pour cette Daily seulement. L'ordre de l'équipe ne change pas.</p>
+
+    <div class="action-bar">
+      <button type="button" class="btn btn-link" (click)="cancel()">Annuler</button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [attr.aria-disabled]="canStart() ? null : 'true'"
+        [class.is-disabled]="!canStart()"
+        (click)="start()"
+      >
+        Commencer la Daily
+      </button>
+    </div>
+  </main>
+}
