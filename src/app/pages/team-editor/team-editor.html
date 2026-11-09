@@ -1,7 +1,7 @@
 <main class="page">
   <h1 class="page-title" tabindex="-1">Créer votre équipe</h1>
 
-  <form class="card" novalidate>
+  <div class="card">
     <div class="field">
       <label class="field-label" for="team-name">Nom d'équipe</label>
       <input
@@ -37,5 +37,39 @@
         <p id="duration-error" class="field-error">{{ message }}</p>
       }
     </div>
-  </form>
+
+    <section class="field" aria-labelledby="members-heading">
+      <h2 id="members-heading" class="section-label">Membres</h2>
+
+      <div class="add-row">
+        <div class="add-field">
+          <label class="field-label" for="member-name">Prénom</label>
+          <input
+            id="member-name"
+            #memberField
+            class="field-input"
+            type="text"
+            autocomplete="off"
+            [formControl]="memberName"
+            (keydown.enter)="onMemberEnter($event)"
+            [attr.aria-invalid]="memberError() ? 'true' : null"
+            [attr.aria-describedby]="memberError() ? 'member-name-error' : null"
+          />
+          @if (memberError(); as message) {
+            <p id="member-name-error" class="field-error">{{ message }}</p>
+          }
+        </div>
+        <button type="button" class="btn btn-secondary" (click)="addMember()">Ajouter</button>
+      </div>
+
+      <ol class="member-list">
+        @for (member of members(); track member) {
+          <li class="member-row">
+            <span class="member-order">{{ $index + 1 }}</span>
+            <span class="member-name">{{ member }}</span>
+          </li>
+        }
+      </ol>
+    </section>
+  </div>
 </main>

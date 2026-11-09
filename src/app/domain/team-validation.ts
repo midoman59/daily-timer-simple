@@ -35,3 +35,27 @@ export function validateDuration(value: string): string | null {
   }
   return null;
 }
+
+export const MEMBER_NAME_MAX_LENGTH = 30;
+
+/**
+ * Renvoie le message d'erreur d'un prénom saisi, ou null si le prénom est valide.
+ * Le doublon est insensible à la casse et sensible aux accents.
+ */
+export function validateMemberName(value: string, existing: readonly string[]): string | null {
+  const name = normalizeSpaces(value);
+  if (!name) {
+    return 'Saisissez un prénom.';
+  }
+  if (name.length > MEMBER_NAME_MAX_LENGTH) {
+    return `Le prénom ne peut pas dépasser ${MEMBER_NAME_MAX_LENGTH} caractères.`;
+  }
+  if (!/^[\p{L}\s'’-]+$/u.test(name) || !/\p{L}/u.test(name)) {
+    return "Le prénom ne peut contenir que des lettres, espaces, traits d'union et apostrophes.";
+  }
+  const lowered = name.toLowerCase();
+  if (existing.some((member) => member.toLowerCase() === lowered)) {
+    return "Ce prénom existe déjà dans l'équipe.";
+  }
+  return null;
+}
