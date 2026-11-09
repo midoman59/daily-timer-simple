@@ -74,15 +74,21 @@ test('retour arrière pendant la Daily : la Daily s\'arrête et ne reprend pas s
 });
 
 for (const key of ['Tab', 'Shift+Tab']) {
-  test(`dialogue d'arrêt : après un clic sur le voile puis ${key}, le focus reste dans le dialogue`, async ({ page }) => {
+  test(`dialogue d'arrêt : focus sur BODY puis ${key} répété, le focus reste dans le dialogue`, async ({ page }) => {
     await startDaily(page);
     await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
     await expect(page.getByRole('alertdialog')).toBeVisible();
 
     await page.locator('.scrim').click({ position: { x: 5, y: 5 } });
-    await page.keyboard.press(key);
+    // Le focus est forcé sur BODY : le point de départ de la tabulation est alors hors du dialogue.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
 
-    await expect(page.getByRole('alertdialog').locator(':focus')).toHaveCount(1);
+    // Plusieurs pressions : une seule ne suffit pas, le focus peut entrer dans le dialogue puis en sortir.
+    for (let i = 0; i < 3; i++) {
+      await page.keyboard.press(key);
+      await expect(page.getByRole('alertdialog').locator(':focus')).toHaveCount(1);
+    }
   });
 }
 
