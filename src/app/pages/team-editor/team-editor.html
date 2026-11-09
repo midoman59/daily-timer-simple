@@ -1,6 +1,12 @@
 <main class="page">
   <h1 class="page-title" tabindex="-1">Créer votre équipe</h1>
 
+  @if (storageError()) {
+    <p class="banner-error" role="alert">
+      L'équipe n'a pas pu être enregistrée sur cet appareil. Le stockage du navigateur est indisponible.
+    </p>
+  }
+
   <div class="card">
     <div class="field">
       <label class="field-label" for="team-name">Nom d'équipe</label>

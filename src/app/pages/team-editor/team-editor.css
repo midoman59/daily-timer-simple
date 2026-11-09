@@ -108,6 +108,17 @@
   color: var(--color-text-secondary);
 }
 
+.banner-error {
+  margin: 0 0 24px;
+  padding: 12px 16px 12px 16px;
+  border-left: 4px solid var(--color-error);
+  border-radius: 12px;
+  background: var(--color-error-bg);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 20px;
+}
+
 .section-label {
   margin: 0;
   font-size: 13px;

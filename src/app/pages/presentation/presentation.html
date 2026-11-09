@@ -1,0 +1,24 @@
+@if (store.team(); as team) {
+  <main class="page">
+    <section class="card" aria-labelledby="team-title">
+      <h1 id="team-title" class="page-title" tabindex="-1">{{ team.name }}</h1>
+      <p class="meta">{{ team.durationMinutes }} min · {{ team.members.length }} membres</p>
+
+      <ol class="member-list">
+        @for (member of team.members; track member) {
+          <li class="member-row">
+            <span class="member-order">{{ $index + 1 }}</span>
+            <span class="member-name">{{ member }}</span>
+          </li>
+        }
+      </ol>
+    </section>
+
+    <div class="actions">
+      <a class="btn btn-secondary" routerLink="/equipe">Modifier l'équipe</a>
+      <button type="button" class="btn btn-primary" [attr.aria-disabled]="team.members.length < 2 ? 'true' : null">
+        Démarrer une Daily
+      </button>
+    </div>
+  </main>
+}

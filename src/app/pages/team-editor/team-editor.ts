@@ -1,5 +1,6 @@
-import { Component, ElementRef, computed, signal, viewChild, viewChildren } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild, viewChildren } from '@angular/core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   DEFAULT_DURATION_MINUTES,
   MAX_MEMBERS,
@@ -10,6 +11,7 @@ import {
   validateTeamName,
   validateTimePerMember,
 } from '../../domain/team-validation';
+import { TeamStore } from '../../services/team.store';
 
 /** Adapte un validateur de domaine (message ou null) au format Angular. */
 function fromDomain(check: (value: string) => string | null) {
@@ -26,6 +28,12 @@ function fromDomain(check: (value: string) => string | null) {
   styleUrl: './team-editor.css',
 })
 export class TeamEditor {
+  private readonly store = inject(TeamStore);
+  private readonly router = inject(Router);
+
+  /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
+  protected readonly storageError = signal(false);
+
   /** Membres saisis, dans l'ordre de saisie. */
   protected readonly members = signal<string[]>([]);
 
@@ -119,18 +127,29 @@ export class TeamEditor {
    * les erreurs s'affichent et le focus va sur le premier champ fautif.
    */
   protected onSave(): void {
-    if (this.canSave()) {
+    if (!this.canSave()) {
+      this.name.markAsTouched();
+      this.duration.markAsTouched();
+      if (this.name.invalid) {
+        this.nameField().nativeElement.focus();
+      } else if (this.duration.invalid || this.timeRuleMessage()) {
+        this.durationField().nativeElement.focus();
+      } else {
+        this.memberField().nativeElement.focus();
+      }
       return;
     }
-    this.name.markAsTouched();
-    this.duration.markAsTouched();
-    if (this.name.invalid) {
-      this.nameField().nativeElement.focus();
-    } else if (this.duration.invalid || this.timeRuleMessage()) {
-      this.durationField().nativeElement.focus();
-    } else {
-      this.memberField().nativeElement.focus();
+
+    const persisted = this.store.save({
+      name: normalizeSpaces(this.name.value),
+      durationMinutes: Number(this.duration.value.trim()),
+      members: this.members(),
+    });
+    if (!persisted) {
+      this.storageError.set(true);
+      return;
     }
+    this.router.navigate(['/presentation']);
   }
 
   protected addMember(): void {
