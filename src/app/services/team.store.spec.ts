@@ -45,10 +45,20 @@ describe('TeamStore (S7 : retrouver l\'équipe au rechargement)', () => {
     expect(store.team()).toBeNull();
   });
 
-  it('garde l\'équipe en mémoire et renvoie false si l\'écriture échoue', () => {
+  it('n\'affiche pas une équipe non écrite comme enregistrée si l\'écriture échoue', () => {
     spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
     const store = new TeamStore();
     expect(store.save(team)).toBeFalse();
-    expect(store.team()).toEqual(team);
+    expect(store.team()).toBeNull();
+  });
+
+  it('garde l\'équipe précédente en mémoire si la nouvelle écriture échoue', () => {
+    const previous = { name: 'Équipe Beta', durationMinutes: 10, members: ['Ana', 'Ben'] };
+    const store = new TeamStore();
+    expect(store.save(previous)).toBeTrue();
+    spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
+    expect(store.save(team)).toBeFalse();
+    expect(store.team()).toEqual(previous);
+    expect(JSON.parse(localStorage.getItem(TEAM_STORAGE_KEY) ?? 'null').name).toBe('Équipe Beta');
   });
 });

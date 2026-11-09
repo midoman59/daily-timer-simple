@@ -59,6 +59,20 @@ describe('TeamEditor (S6 : enregistrer l\'équipe)', () => {
     expect(stored.name).toBe('Équipe Alpha');
   });
 
+  it('reste sur l\'écran et affiche une erreur si le stockage refuse l\'écriture', () => {
+    spyOn(Storage.prototype, 'setItem').and.throwError('QuotaExceededError');
+    typeInto('#team-name', 'Équipe Alpha');
+    addName('Léa');
+    addName('Tom');
+    saveButton().click();
+    fixture.detectChanges();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(TestBed.inject(TeamStore).team()).toBeNull();
+    const alert = el.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain("L'équipe n'a pas pu être enregistrée");
+  });
+
   it('n\'ouvre pas la présentation si l\'équipe est invalide', () => {
     typeInto('#team-name', 'Équipe A');
     saveButton().click();

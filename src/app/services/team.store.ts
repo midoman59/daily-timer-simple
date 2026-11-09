@@ -59,18 +59,19 @@ export class TeamStore {
   }
 
   /**
-   * Enregistre l'équipe en mémoire puis dans le stockage local.
-   * Renvoie false si le stockage n'a pas pu être écrit (l'équipe reste disponible pour la session).
+   * Écrit l'équipe dans le stockage local, puis la met en mémoire seulement si l'écriture a réussi.
+   * Renvoie false si le stockage n'a pas pu être écrit : la mémoire n'est pas modifiée, donc une
+   * équipe non enregistrée n'est jamais présentée comme enregistrée.
    */
   save(team: Team): boolean {
-    this.team.set(team);
-    this.readError.set(false);
     try {
       localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify({ version: 1, ...team }));
-      return true;
     } catch {
       return false;
     }
+    this.team.set(team);
+    this.readError.set(false);
+    return true;
   }
 
   private load(): void {
