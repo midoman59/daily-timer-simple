@@ -140,6 +140,28 @@ describe('TeamEditor (S3 à S7 : création et modification sans durée)', () => 
       expect(document.activeElement?.getAttribute('aria-label')).toBe('Supprimer Omar');
     });
 
+    it('après la suppression d\'un membre du milieu, le focus va au Supprimer du membre suivant (I1)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'Ana');
+      await addMember(harness, el, 'Ben');
+      await addMember(harness, el, 'Cléo');
+      el.querySelector<HTMLButtonElement>('button[aria-label="Supprimer Ben"]')!.click();
+      harness.fixture.detectChanges();
+      await harness.fixture.whenStable();
+      expect(document.activeElement).not.toBe(document.body);
+      expect(document.activeElement?.getAttribute('aria-label')).toBe('Supprimer Cléo');
+    });
+
+    it('après la suppression du dernier membre, le focus va au champ Prénom (I1)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'Ana');
+      await addMember(harness, el, 'Ben');
+      el.querySelector<HTMLButtonElement>('button[aria-label="Supprimer Ben"]')!.click();
+      harness.fixture.detectChanges();
+      await harness.fixture.whenStable();
+      expect(document.activeElement).toBe(input(el, 'member-name'));
+    });
+
     it('affiche le bandeau d\'illisibilité quand une donnée stockée est illisible', async () => {
       localStorage.setItem('daily-timer-simple.teams.v2', '{pas du json');
       const { el } = await open('/equipe/nouvelle');

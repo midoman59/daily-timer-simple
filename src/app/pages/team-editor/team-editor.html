@@ -75,7 +75,7 @@
 
     @if (members().length > 0) {
       <ol class="member-list" aria-labelledby="members-heading">
-        @for (member of members(); track $index) {
+        @for (member of members(); track member) {
           <li class="row">
             <span class="row-order">{{ $index + 1 }}</span>
             <span class="row-title">{{ member }}</span>
