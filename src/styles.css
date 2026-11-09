@@ -23,7 +23,6 @@
   --color-focus: #0066cc;
   --color-scrim: rgba(29, 29, 31, 0.32);
   --color-material: rgba(255, 255, 255, 0.72);
-  --material-edge: rgba(255, 255, 255, 0.4);
 
   /* Espace entre le bouton « Nouvelle équipe » et la liste (D48). */
   --space-cta-to-list: 16px;
@@ -71,7 +70,6 @@
     --color-focus: #64b5ff;
     --color-scrim: rgba(28, 28, 30, 0.6);
     --color-material: rgba(44, 44, 46, 0.72);
-    --material-edge: rgba(255, 255, 255, 0.08);
 
     --shadow-group: none;
     --shadow-raised: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 16px 40px rgba(0, 0, 0, 0.5);
