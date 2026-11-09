@@ -816,3 +816,11 @@ p {
     box-shadow: 0 0 0 1px var(--color-border-control);
   }
 }
+
+/* Sur téléphone, « Nouvelle équipe » occupe toute la largeur (design 5.1). */
+@media (max-width: 599px) {
+  .create-button {
+    display: flex;
+    width: 100%;
+  }
+}

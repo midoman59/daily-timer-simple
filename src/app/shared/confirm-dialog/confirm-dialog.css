@@ -36,3 +36,18 @@
     animation: scrim-in 160ms ease-out both;
   }
 }
+
+/* Largeur du dialogue : 360 px au plus, sans débordement à 320 px (design 6.0). */
+.dialog {
+  width: min(360px, calc(100vw - 32px));
+}
+
+.dialog-title {
+  text-wrap: balance;
+}
+
+/* Libellés d'action sur une ligne : la largeur suit le texte, « Supprimer l'équipe » ne se coupe pas. */
+.dialog-actions .btn {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
