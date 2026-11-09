@@ -150,6 +150,34 @@
   box-shadow: var(--shadow-focus);
 }
 
+.btn-primary {
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn-primary:active {
+  background: var(--color-accent-pressed);
+}
+
+.btn-primary.is-disabled {
+  background: var(--color-surface-muted);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.actions {
+  display: grid;
+  gap: 12px;
+  justify-items: end;
+}
+
 .member-list {
   list-style: none;
   margin: 0;

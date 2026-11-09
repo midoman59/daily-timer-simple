@@ -6,6 +6,7 @@
       <label class="field-label" for="team-name">Nom d'équipe</label>
       <input
         id="team-name"
+        #nameField
         class="field-input"
         type="text"
         autocomplete="off"
@@ -23,17 +24,20 @@
       <div class="field-suffix">
         <input
           id="duration"
+          #durationField
           class="field-input"
           type="text"
           inputmode="numeric"
           autocomplete="off"
           [formControl]="duration"
-          [attr.aria-invalid]="errorOf(duration) ? 'true' : null"
-          [attr.aria-describedby]="errorOf(duration) ? 'duration-error' : null"
+          [attr.aria-invalid]="errorOf(duration) || timeRuleMessage() ? 'true' : null"
+          [attr.aria-describedby]="errorOf(duration) || timeRuleMessage() ? 'duration-error' : null"
         />
         <span class="field-unit" aria-hidden="true">min</span>
       </div>
       @if (errorOf(duration); as message) {
+        <p id="duration-error" class="field-error">{{ message }}</p>
+      } @else if (timeRuleMessage(); as message) {
         <p id="duration-error" class="field-error">{{ message }}</p>
       }
     </div>
@@ -89,5 +93,21 @@
         <p class="help">Ajoutez au moins 2 membres pour continuer.</p>
       }
     </section>
+
+    <div class="actions">
+      <button
+        type="button"
+        class="btn btn-primary"
+        [attr.aria-disabled]="canSave() ? null : 'true'"
+        [attr.aria-describedby]="saveBlockReason() ? 'save-hint' : null"
+        [class.is-disabled]="!canSave()"
+        (click)="onSave()"
+      >
+        Enregistrer l'équipe
+      </button>
+      @if (saveBlockReason(); as reason) {
+        <p id="save-hint" class="help">{{ reason }}</p>
+      }
+    </div>
   </div>
 </main>

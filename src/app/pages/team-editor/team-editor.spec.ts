@@ -207,3 +207,80 @@ describe('TeamEditor (S4 : retirer un membre avant enregistrement)', () => {
     expect(document.activeElement).toBe(el.querySelector('#member-name'));
   });
 });
+
+describe('TeamEditor (S5 : valider les champs obligatoires)', () => {
+  let fixture: ComponentFixture<TeamEditor>;
+  let el: HTMLElement;
+
+  function typeInto(selector: string, value: string): void {
+    const input = el.querySelector<HTMLInputElement>(selector)!;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+  }
+
+  function addName(name: string): void {
+    typeInto('#member-name', name);
+    el.querySelector<HTMLInputElement>('#member-name')!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter' }),
+    );
+    fixture.detectChanges();
+  }
+
+  function saveButton(): HTMLButtonElement {
+    return Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
+      b.textContent?.includes("Enregistrer l'équipe"),
+    )!;
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
+    fixture = TestBed.createComponent(TeamEditor);
+    fixture.detectChanges();
+    el = fixture.nativeElement as HTMLElement;
+  });
+
+  it('garde « Enregistrer l\'équipe » inactif tant que le nom est vide', () => {
+    addName('Léa');
+    addName('Tom');
+    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
+    typeInto('#team-name', 'Équipe A');
+    expect(saveButton().getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('reste inactif avec moins de 2 membres ou une durée invalide', () => {
+    typeInto('#team-name', 'Équipe A');
+    addName('Léa');
+    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
+    addName('Tom');
+    expect(saveButton().getAttribute('aria-disabled')).toBeNull();
+    typeInto('#duration', '7,5');
+    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('bloque si la durée ne laisse pas 30 secondes par membre', () => {
+    typeInto('#team-name', 'Équipe A');
+    typeInto('#duration', '1');
+    addName('Léa');
+    addName('Tom');
+    addName('Ana');
+    expect(saveButton().getAttribute('aria-disabled')).toBe('true');
+    expect(el.textContent).toContain('au moins 30 secondes');
+  });
+
+  it('place le focus sur le premier champ fautif après un clic sur un bouton inactif', () => {
+    saveButton().click();
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(el.querySelector('#team-name'));
+    expect(el.textContent).toContain('Donnez un nom à votre équipe.');
+  });
+
+  it('ne rend pas la barre d\'action muette : une aide explique ce qui manque', () => {
+    typeInto('#team-name', 'Équipe A');
+    fixture.detectChanges();
+    expect(saveButton().getAttribute('aria-describedby')).toBe('save-hint');
+    expect(el.querySelector('#save-hint')?.textContent).toContain('Ajoutez au moins 2 membres');
+  });
+});

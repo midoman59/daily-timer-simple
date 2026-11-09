@@ -3,10 +3,12 @@ import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } f
 import {
   DEFAULT_DURATION_MINUTES,
   MAX_MEMBERS,
+  MIN_MEMBERS,
   normalizeSpaces,
   validateDuration,
   validateMemberName,
   validateTeamName,
+  validateTimePerMember,
 } from '../../domain/team-validation';
 
 /** Adapte un validateur de domaine (message ou null) au format Angular. */
@@ -38,6 +40,8 @@ export class TeamEditor {
   /** Vrai après une tentative d'ajout : l'erreur du prénom ne s'affiche qu'à partir de là. */
   protected readonly memberAttempted = signal(false);
 
+  private readonly nameField = viewChild.required<ElementRef<HTMLInputElement>>('nameField');
+  private readonly durationField = viewChild.required<ElementRef<HTMLInputElement>>('durationField');
   private readonly memberField = viewChild.required<ElementRef<HTMLInputElement>>('memberField');
   private readonly deleteButtons = viewChildren<ElementRef<HTMLButtonElement>>('deleteButton');
 
@@ -67,12 +71,66 @@ export class TeamEditor {
   /** Message du prénom : affiché seulement après une tentative d'ajout. */
   protected memberError(): string | null {
     if (this.isFull()) {
-      return 'Une équipe ne peut pas dépasser ' + MAX_MEMBERS + ' membres.';
+      return `Une équipe ne peut pas dépasser ${MAX_MEMBERS} membres.`;
     }
     if (!this.memberAttempted() || this.memberName.valid) {
       return null;
     }
     return (this.memberName.errors?.['message'] as string | undefined) ?? null;
+  }
+
+  /** Durée saisie, si elle est valide ; sinon null. */
+  private validDurationMinutes(): number | null {
+    return this.duration.valid ? Number(this.duration.value.trim()) : null;
+  }
+
+  /** Message de la règle « 30 secondes par membre », affiché sous le champ durée. */
+  protected timeRuleMessage(): string | null {
+    const minutes = this.validDurationMinutes();
+    if (minutes === null) {
+      return null;
+    }
+    return validateTimePerMember(minutes, this.members().length);
+  }
+
+  /** Premier motif qui empêche l'enregistrement, dans l'ordre de l'écran ; null si tout est bon. */
+  protected saveBlockReason(): string | null {
+    if (this.name.invalid) {
+      return this.name.errors?.['message'] as string;
+    }
+    if (this.duration.invalid) {
+      return this.duration.errors?.['message'] as string;
+    }
+    if (this.timeRuleMessage()) {
+      return this.timeRuleMessage();
+    }
+    if (this.members().length < MIN_MEMBERS) {
+      return `Ajoutez au moins ${MIN_MEMBERS} membres pour continuer.`;
+    }
+    return null;
+  }
+
+  protected canSave(): boolean {
+    return this.saveBlockReason() === null;
+  }
+
+  /**
+   * Clic (ou Entrée) sur « Enregistrer l'équipe » alors qu'il est inactif :
+   * les erreurs s'affichent et le focus va sur le premier champ fautif.
+   */
+  protected onSave(): void {
+    if (this.canSave()) {
+      return;
+    }
+    this.name.markAsTouched();
+    this.duration.markAsTouched();
+    if (this.name.invalid) {
+      this.nameField().nativeElement.focus();
+    } else if (this.duration.invalid || this.timeRuleMessage()) {
+      this.durationField().nativeElement.focus();
+    } else {
+      this.memberField().nativeElement.focus();
+    }
   }
 
   protected addMember(): void {

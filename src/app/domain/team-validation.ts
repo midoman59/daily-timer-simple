@@ -61,3 +61,20 @@ export function validateMemberName(value: string, existing: readonly string[]): 
   }
   return null;
 }
+
+export const MIN_SECONDS_PER_MEMBER = 30;
+
+/**
+ * Vérifie qu'il reste au moins 30 secondes par membre pendant la Daily.
+ * Sans membre, rien n'est vérifié.
+ */
+export function validateTimePerMember(durationMinutes: number, memberCount: number): string | null {
+  if (memberCount < 1) {
+    return null;
+  }
+  const secondsPerMember = (durationMinutes * 60) / memberCount;
+  if (secondsPerMember < MIN_SECONDS_PER_MEMBER) {
+    return `La durée divisée par le nombre de membres doit être d'au moins ${MIN_SECONDS_PER_MEMBER} secondes.`;
+  }
+  return null;
+}

@@ -2,6 +2,7 @@ import {
   DEFAULT_DURATION_MINUTES,
   validateDuration,
   validateMemberName,
+  validateTimePerMember,
 } from './team-validation';
 
 describe('validateDuration (S1)', () => {
@@ -49,5 +50,19 @@ describe('validateMemberName (S2, S5)', () => {
     expect(validateMemberName('thomas', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('  Thomas  ', ['Thomas'])).toBe('Ce prénom existe déjà dans l\'équipe.');
     expect(validateMemberName('Lea', ['Léa'])).toBeNull();
+  });
+});
+
+describe('validateTimePerMember (S5)', () => {
+  it('exige au moins 30 secondes par membre', () => {
+    expect(validateTimePerMember(15, 15)).toBeNull();
+    expect(validateTimePerMember(1, 2)).toBeNull();
+    expect(validateTimePerMember(1, 3)).toBe(
+      'La durée divisée par le nombre de membres doit être d\'au moins 30 secondes.',
+    );
+  });
+
+  it('ne se prononce pas sans membre', () => {
+    expect(validateTimePerMember(1, 0)).toBeNull();
   });
 });
