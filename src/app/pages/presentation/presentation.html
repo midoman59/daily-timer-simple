@@ -1,7 +1,7 @@
 @if (store.team(); as team) {
   <main class="page">
     <section class="card" aria-labelledby="team-title">
-      <h1 id="team-title" class="page-title" tabindex="-1">{{ team.name }}</h1>
+      <h1 #title id="team-title" class="page-title" tabindex="-1">{{ team.name }}</h1>
       <p class="meta">{{ team.durationMinutes }} min · {{ team.members.length }} membres</p>
 
       <ol class="member-list">

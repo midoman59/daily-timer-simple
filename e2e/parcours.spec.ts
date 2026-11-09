@@ -20,7 +20,7 @@ test('création, présentation, démarrage et arrêt de la Daily', async ({ page
 
   await page.getByRole('button', { name: "Enregistrer l'équipe" }).click();
   await expect(page).toHaveURL(/#\/presentation$/);
-  await expect(page.getByRole('heading', { name: 'Équipe Alpha' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Équipe Alpha' })).toBeFocused();
 
   await page.getByRole('button', { name: 'Démarrer une Daily' }).click();
   await expect(page).toHaveURL(/#\/daily$/);

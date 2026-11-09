@@ -37,6 +37,10 @@ describe('Presentation (S6 : voir la présentation de l\'équipe)', () => {
     expect(start!.classList).toContain('btn-primary');
   });
 
+  it('place le focus sur le titre de l\'écran à son arrivée', () => {
+    expect(document.activeElement).toBe(el.querySelector('#team-title'));
+  });
+
   it('ouvre l\'écran de modification avec « Modifier l\'équipe »', () => {
     const edit = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes("Modifier l'équipe"));
     expect(edit?.getAttribute('href')).toContain('equipe');
