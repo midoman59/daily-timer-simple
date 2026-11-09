@@ -1,4 +1,14 @@
-import { Component, ElementRef, computed, inject, signal, viewChild, viewChildren } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild,
+  viewChildren,
+} from '@angular/core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -30,6 +40,7 @@ function fromDomain(check: (value: string) => string | null) {
 export class TeamEditor {
   private readonly store = inject(TeamStore);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
 
   /** Vrai si une équipe stockée est illisible : on demande de la recréer. */
   protected readonly unreadable = this.store.readError;
@@ -191,7 +202,20 @@ export class TeamEditor {
     this.memberName.setValue('');
     this.memberName.markAsUntouched();
     this.memberAttempted.set(false);
-    this.memberField().nativeElement.focus();
+    this.focusAfterAdd();
+  }
+
+  /**
+   * Après un ajout, le focus va au champ Prénom. Quand l'équipe est pleine, le champ et le bouton
+   * « Ajouter » deviennent inactifs : le focus va alors au dernier bouton « Supprimer », une fois
+   * le rendu fait (un élément désactivé ne peut pas recevoir le focus).
+   */
+  private focusAfterAdd(): void {
+    if (this.isFull()) {
+      afterNextRender(() => this.deleteButtons().at(-1)?.nativeElement.focus(), { injector: this.injector });
+    } else {
+      this.memberField().nativeElement.focus();
+    }
   }
 
   /** Désactive la saisie d'un prénom quand l'équipe est pleine. */

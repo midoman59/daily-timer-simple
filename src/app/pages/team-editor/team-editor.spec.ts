@@ -143,6 +143,33 @@ describe('TeamEditor (S3 : compteur de membres)', () => {
     expect(input.disabled).toBeTrue();
     expect(el.textContent).toContain('Une équipe ne peut pas dépasser 15 membres.');
   });
+
+  it('garde le focus dans la liste après le 15e membre ajouté avec Entrée', () => {
+    for (let i = 1; i <= 15; i++) {
+      addName(`Membre${String.fromCharCode(64 + i)}`);
+    }
+    const deleteButtons = el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn');
+    expect(document.activeElement).toBe(deleteButtons[deleteButtons.length - 1]);
+  });
+
+  it('garde le focus dans la liste après le 15e membre ajouté avec le bouton « Ajouter »', () => {
+    for (let i = 1; i <= 14; i++) {
+      addName(`Membre${String.fromCharCode(64 + i)}`);
+    }
+    const input = el.querySelector<HTMLInputElement>('#member-name')!;
+    input.value = `Membre${String.fromCharCode(64 + 15)}`;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    const addButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
+      b.textContent?.includes('Ajouter'),
+    )!;
+    addButton.focus();
+    addButton.click();
+    fixture.detectChanges();
+    const deleteButtons = el.querySelectorAll<HTMLButtonElement>('.member-list .icon-btn');
+    expect(addButton.disabled).toBeTrue();
+    expect(document.activeElement).toBe(deleteButtons[deleteButtons.length - 1]);
+  });
 });
 
 describe('TeamEditor (S4 : retirer un membre avant enregistrement)', () => {
