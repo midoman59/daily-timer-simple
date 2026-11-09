@@ -109,6 +109,20 @@ describe('Daily (S9 : écran de la Daily)', () => {
     expect(document.activeElement?.closest('[role="alertdialog"]')).not.toBeNull();
   });
 
+  it('ramène le focus dans le dialogue si Tab ou Maj+Tab est pressé alors que le focus est hors du dialogue', () => {
+    button('Arrêter la Daily')!.click();
+    fixture.detectChanges();
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(document.activeElement?.closest('[role="alertdialog"]')).not.toBeNull();
+
+    (document.activeElement as HTMLElement).blur();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+    expect(document.activeElement?.textContent?.trim()).toBe('Arrêter');
+  });
+
   it('arrête la Daily quand l\'écran est quitté sans « Arrêter » (retour arrière)', () => {
     fixture.destroy();
     expect(timer.session()).toBeNull();

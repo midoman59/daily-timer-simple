@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   Injector,
   afterNextRender,
   computed,
@@ -76,6 +77,28 @@ export class Daily implements OnDestroy {
   protected stopDaily(): void {
     this.timer.stop();
     this.router.navigate(['/presentation']);
+  }
+
+  /**
+   * Focus hors du dialogue pendant la confirmation (clic sur le voile, focus sur BODY) : Tab et Maj+Tab
+   * ramènent le focus dans le dialogue, au lieu de laisser le navigateur atteindre le fond.
+   */
+  @HostListener('document:keydown', ['$event'])
+  protected onDocumentKeydown(event: KeyboardEvent): void {
+    if (!this.confirming() || event.key !== 'Tab') {
+      return;
+    }
+    const first = this.continueButton()?.nativeElement;
+    const last = this.confirmStopButton()?.nativeElement;
+    if (!first || !last) {
+      return;
+    }
+    const dialog = first.closest('[role="alertdialog"]');
+    if (dialog?.contains(document.activeElement)) {
+      return; // Déjà dans le dialogue : onDialogKeydown gère le piège.
+    }
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
   }
 
   /** Dans le dialogue : Échap = Continuer, Tab reste piégé entre les deux boutons. */
