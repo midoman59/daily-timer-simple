@@ -1,7 +1,1 @@
-/* Styles de l'écran « Mes équipes » : les composants communs sont dans src/styles.css. */
-.screen-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
+/* Mes équipes : les composants communs sont dans src/styles.css. */

@@ -1,5 +1,5 @@
 @if (timer.session(); as session) {
-  <main class="daily" [attr.inert]="confirming() ? '' : null">
+  <main class="screen daily" [attr.inert]="confirming() ? '' : null">
     <header class="daily-head">
       <h1 #heading class="daily-team" tabindex="-1">{{ session.teamName }}</h1>
       <p class="meta">{{ modeLabel() }}</p>

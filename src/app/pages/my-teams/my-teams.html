@@ -1,7 +1,7 @@
 <main class="screen">
   <header class="screen-head">
     <h1 #title class="screen-title" tabindex="-1">Mes équipes</h1>
-    <a class="btn btn-primary screen-head-action" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
+    <a class="btn btn-primary head-action" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
   </header>
 
   @if (store.readError()) {
@@ -25,4 +25,8 @@
   } @else {
     <p class="help">Aucune équipe pour l'instant.</p>
   }
+
+  <div class="action-bar">
+    <a class="btn btn-primary bar-only" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
+  </div>
 </main>

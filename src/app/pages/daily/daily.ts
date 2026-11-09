@@ -11,7 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { isFinished } from '../../domain/daily-run';
 import { DailyTimerService } from '../../services/daily-timer.service';
 
@@ -21,7 +21,6 @@ import { DailyTimerService } from '../../services/daily-timer.service';
  */
 @Component({
   selector: 'app-daily',
-  imports: [RouterLink],
   templateUrl: './daily.html',
   styleUrl: './daily.css',
 })
