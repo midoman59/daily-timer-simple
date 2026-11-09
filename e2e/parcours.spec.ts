@@ -392,6 +392,19 @@ test('contraste : le texte du bouton principal atteint 4,5:1 dans les deux thèm
   expect(await contrastOf(primary)).toBeGreaterThanOrEqual(4.5);
 });
 
+test('filet de la barre d\'actions mobile : jeton --material-edge, 0,4 en clair et 0,08 en sombre (m-1, design v3 section 2)', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('./');
+  await createTeam(page, 'Équipe Filet', ['Léa', 'Tom']);
+  const bar = page.locator('.action-bar').first();
+  await expect(bar).toBeVisible();
+  const edge = (): Promise<string> => bar.evaluate((el) => getComputedStyle(el).borderTopColor);
+  expect(await edge()).toBe('rgba(255, 255, 255, 0.4)');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  expect(await edge()).toBe('rgba(255, 255, 255, 0.08)');
+});
+
 test('suppression d\'équipe depuis Mes équipes, avec confirmation (S21)', async ({ page }) => {
   await page.goto('./');
   await createTeam(page, 'Équipe Supp', ['Léa', 'Tom']);
