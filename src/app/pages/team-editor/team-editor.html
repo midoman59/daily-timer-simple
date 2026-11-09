@@ -102,7 +102,9 @@
   }
 
   <div class="action-bar">
-    <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
+    @if (isEdit || hasTeams()) {
+      <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
+    }
     <button
       #saveButton
       type="button"

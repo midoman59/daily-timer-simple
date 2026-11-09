@@ -37,6 +37,13 @@ describe('MyTeams (S1, S2, S19, S20, S21 : écran Mes équipes)', () => {
     expect(counts).toEqual(['3 membres', '2 membres']);
   });
 
+  it('sans aucune équipe, n\'affiche ni liste ni message vide (brief v3 section 2, I2)', () => {
+    store.teams().forEach((team) => store.remove(team.id));
+    fixture.detectChanges();
+    expect(root.querySelector('.group')).toBeNull();
+    expect(root.textContent).not.toContain("Aucune équipe pour l'instant.");
+  });
+
   it('donne à chaque équipe un bouton « Ouvrir » vers sa présentation', () => {
     const links = Array.from(root.querySelectorAll('a')).filter((a) => a.textContent?.trim() === 'Ouvrir');
     expect(links.length).toBe(2);

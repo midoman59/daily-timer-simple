@@ -119,7 +119,13 @@ describe('TeamEditor (S3 à S7 : création et modification sans durée)', () => 
       expect(router.url).toBe(`/equipe/${saved.id}`);
     });
 
-    it('propose toujours Annuler, qui ramène à « Mes équipes » (D49)', async () => {
+    it('sans aucune équipe, n\'affiche pas Annuler (brief v3 sections 2 et 6, I2)', async () => {
+      const { el } = await open('/equipe/nouvelle');
+      expect(button(el, 'Annuler')).toBeUndefined();
+    });
+
+    it('avec au moins une équipe, Annuler ramène à « Mes équipes » (brief v3, I2)', async () => {
+      TestBed.inject(TeamStore).save({ name: 'Autre équipe', members: ['Léa', 'Tom'] });
       const { harness, el } = await open('/equipe/nouvelle');
       expect(button(el, 'Annuler')).toBeDefined();
       button(el, 'Annuler').click();

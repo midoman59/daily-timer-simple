@@ -104,7 +104,10 @@ export class TeamEditor {
 
   protected readonly heading = computed(() => (this.isEdit ? "Modifier l'équipe" : 'Nouvelle équipe'));
 
-  /** Annuler : en modification, retour à la présentation ; en création, retour à « Mes équipes » (D49). */
+  /** Vrai s'il existe au moins une équipe : en création, « Annuler » ne s'affiche que dans ce cas (brief v3, section 6). */
+  protected readonly hasTeams = computed(() => this.store.teams().length > 0);
+
+  /** Annuler : en modification, retour à la présentation ; en création, retour à « Mes équipes ». */
   protected cancel(): void {
     if (this.isEdit) {
       this.router.navigate(['/equipe', this.teamId]);
