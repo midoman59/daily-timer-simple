@@ -20,8 +20,14 @@ Ce fichier consigne les choix pris par Amelia sur les règles marquées **[à va
 | D14 | Rechargement pendant une Daily | Retour à l'écran 2 ; le chronomètre n'est jamais relancé seul ni repris | design 4.3 / 6 |
 | D15 | Remplacement d'une équipe | Pas de flux de création quand une équipe existe : l'écran 1 passe en modification, donc pas de confirmation d'écrasement nécessaire (question 2 du brief close) | brief 6 |
 | D16 | Suppression d'un membre | Animation de sortie en hauteur simplifiée : la ligne disparaît sans transition de hauteur ; le fondu d'entrée est conservé | design 3.7 (écart mineur) |
-| D17 | Stockage | localStorage, clé versionnée, lecture et écriture protégées par try/catch ; si l'écriture échoue, un message d'erreur est affiché et l'équipe reste en mémoire pour la session | brief S7 |
+| D17 | Stockage | localStorage, clé versionnée, lecture et écriture protégées par try/catch ; si l'écriture échoue, l'écran de création reste ouvert avec un bandeau d'erreur (pas de passage à la présentation) ; si la lecture échoue, l'application démarre sans équipe | brief S7 |
 | D18 | Routage | Mode hash (`#/equipe`, `#/presentation`, `#/daily`) pour GitHub Pages | brief stack |
 | D19 | Police | Pile système uniquement, aucune police web | design 2.1 |
 | D20 | PWA | `@angular/service-worker` non inclus : la PWA est hors périmètre (brief 5) | brief 5 |
 | D21 | Reprise de la Daily | Non implémentée : pas de reprise après rechargement (D14) | brief 6 question 3 |
+| D22 | Barre d'action mobile | Pas de barre fixe en bas : sous 600 px, les boutons d'action prennent toute la largeur dans le flux (écart mineur avec design 3.13) | design 4.0 |
+| D23 | Aide sous 2 membres | Le message « Ajoutez au moins 2 membres pour continuer. » s'affiche tant qu'il y a moins de 2 membres (et non seulement à 0) | brief 2 / design 3.8 |
+| D24 | Bouton Démarrer | Désactivé (aria-disabled) sous 2 membres, avec le message « Ajoutez au moins 2 membres pour démarrer. » relié par aria-describedby | brief 2 |
+| D25 | Annuler et Échap | En modification : « Annuler » et Échap reviennent à la présentation sans enregistrer ; en création, Échap est sans effet | design 4.5 |
+| D26 | Décompte à 00:00 | Le décompte affiche 00:00 quand le dépassement commence, puis « +mm:ss » ; l'arrondi est au-dessus pour le décompte (15:00 au démarrage) | design 3.10 |
+| D27 | Dialogue d'arrêt | Ordre des boutons « Continuer » puis « Arrêter » ; sous 600 px les boutons sont empilés (action sûre en haut) | design 3.11 |

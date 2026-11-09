@@ -25,3 +25,9 @@ jobs:
 
       - name: Build de production
         run: npx ng build --configuration production --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Installer le navigateur Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Tests E2E sur le build de production
+        run: npx playwright test
