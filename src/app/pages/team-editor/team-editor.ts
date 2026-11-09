@@ -34,6 +34,30 @@ export class TeamEditor {
   /** Vrai si une équipe stockée est illisible : on demande de la recréer. */
   protected readonly unreadable = this.store.readError;
 
+  /** Vrai quand une équipe est déjà enregistrée : l'écran la modifie. */
+  protected readonly isEdit = this.store.team() !== null;
+
+  constructor() {
+    const team = this.store.team();
+    if (team) {
+      this.name.setValue(team.name);
+      this.duration.setValue(String(team.durationMinutes));
+      this.members.set([...team.members]);
+      this.syncMemberInput();
+    }
+  }
+
+  /** Annuler (modification seulement) : retour à la présentation, sans rien enregistrer. */
+  protected cancel(): void {
+    this.router.navigate(['/presentation']);
+  }
+
+  protected onEscape(): void {
+    if (this.isEdit) {
+      this.cancel();
+    }
+  }
+
   /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
   protected readonly storageError = signal(false);
 

@@ -184,9 +184,37 @@
 }
 
 .actions {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
-  justify-items: end;
+}
+
+.save-hint {
+  margin-top: -8px;
+  text-align: right;
+}
+
+.btn-link {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
 }
 
 .member-list {
