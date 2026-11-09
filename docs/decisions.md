@@ -60,7 +60,7 @@ Ce fichier consigne les choix pris par Amelia sur les règles marquées **[à va
 | D54 | Ancienne durée | Une équipe de la version précédente perd sa durée au chargement, sans l'afficher (défaut) | Point à valider 6, brief v3 section 6 |
 | D55 | Membre passé | Un membre passé ne revient pas dans la même Daily (défaut). « Passer » n'est pas proposé pour lui | Point à valider 7, brief v3 section 6 |
 | D56 | Bilan après rechargement | Le bilan (f) n'est pas conservé : il est perdu si la page est rechargée ou fermée. Un rechargement sur (f) renvoie à la présentation de l'équipe | Point à valider 8, brief v3 section 6 |
-| D57 | « Passer ce membre » au dernier membre qui parle | Masqué quand aucun membre à venir ne reste (design 5.5.1, défaut) : passer le dernier membre laisserait la Daily sans suite. « Terminer la Daily » reste la seule sortie | Design 5.5.1 et 10.2 |
+| D57 | « Passer ce membre » au dernier membre qui parle | **Remplacé par D65** (revue 6, I3). Ancien choix : masqué au dernier membre, selon le design 5.5.1 | Design 5.5.1 et 10.2 |
 | D58 | Pause de reprise et membre suivant | Après une réouverture, la Daily est en pause : « Suivant » et « Passer » restent disponibles, le membre suivant commence avec son temps alloué figé jusqu'à « Reprendre la Daily » | S27, brief v3 section 3.7 |
 | D59 | Chronomètre pendant un dialogue | Le décompte est figé pendant l'arrêt et la garde de sortie, et reprend sans perte à « Continuer ». Le temps écoulé pendant la fermeture ne compte pas | S17, S28, design 6.3 |
 | D60 | Garde de sortie et « Arrêter » | « Arrêter » efface la Daily puis va à l'écran visé par la navigation (ou à « Mes équipes » si rien n'est visé) | Design 6.4 |
@@ -68,3 +68,4 @@ Ce fichier consigne les choix pris par Amelia sur les règles marquées **[à va
 | D62 | Fin de la Daily et focus | Après « Terminer la Daily », l'écran (f) s'ouvre et son titre reçoit le focus. Le libellé ne reste pas sur le même bouton (résout le point 10.3 du design) | Design 10.3 |
 | D63 | Supprimer la dernière équipe | Après suppression, l'application affiche (b) (brief S21) | Brief v3 S21 |
 | D64 | Icône d'application | Une seule icône pour les deux thèmes (design section 9) | Design 9 et 10.8 |
+| D65 | « Passer ce membre » au dernier membre qui parle | « Passer ce membre » est proposé au membre qui parle, dernier compris, comme aux autres membres qui parlent. Un absent en dernier est compté « passé » au bilan, sans temps. Une fois la liste épuisée, « Terminer la Daily » devient l'action principale. Remplace D57 : le masquage venait du design 5.5.1, qui contredit la décision client 11 et le brief v3 (section 3.5) | Décision client 11, brief v3 section 3.5 (ligne 257) ; revue 6, I3 |

@@ -28,7 +28,7 @@
         }
       </p>
 
-      @if (timer.current() && !isLast()) {
+      @if (timer.current()) {
         <button type="button" class="btn btn-secondary btn-compact" (click)="pass(currentIndex())">Passer ce membre</button>
       }
     </section>

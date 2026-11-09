@@ -103,7 +103,7 @@ export class Daily {
     this.timer.next();
   }
 
-  /** « Passer ce membre » (celui qui parle, sauf le dernier) ou « Passer » sur une ligne. */
+  /** « Passer ce membre » (celui qui parle, dernier compris) ou « Passer » sur une ligne. */
   protected pass(index: number): void {
     this.timer.pass(index);
     // Une ligne passée disparaît : le focus va à l'action principale, pour ne pas se perdre.

@@ -112,13 +112,41 @@ describe('Daily (S13 à S17, S26 à S28 : écran de la Daily)', () => {
     expect(statuses(el)).toEqual(['Léa:passé', 'Tom:En cours', 'Ana:Passer']);
   });
 
+  it('un absent en dernier est compté « passé » au bilan, pas « parlé » (I3)', async () => {
+    const { harness, el } = await open();
+    button(el, 'Suivant')!.click();
+    harness.fixture.detectChanges();
+    button(el, 'Suivant')!.click();
+    harness.fixture.detectChanges();
+    expect(el.querySelector('.current-name')?.textContent?.trim()).toBe('Ana');
+
+    button(el, 'Passer ce membre')!.click();
+    harness.fixture.detectChanges();
+    expect(statuses(el)).toEqual(['Léa:fait', 'Tom:fait', 'Ana:passé']);
+    button(el, 'Terminer la Daily')!.click();
+    await settle(harness);
+    expect(timer.report()?.rows.map((row) => [row.name, row.passed, row.spokenSeconds])).toEqual([
+      ['Léa', false, 0],
+      ['Tom', false, 0],
+      ['Ana', true, null],
+    ]);
+  });
+
+  it('au dernier membre, « Passer ce membre » reste disponible (I3, décision 11)', async () => {
+    const { harness, el } = await open();
+    button(el, 'Suivant')!.click();
+    harness.fixture.detectChanges();
+    button(el, 'Suivant')!.click();
+    harness.fixture.detectChanges();
+    expect(button(el, 'Passer ce membre')).toBeDefined();
+  });
+
   it('au dernier membre, « Terminer la Daily » ouvre le bilan et ne ramène pas à la présentation (S26)', async () => {
     const { harness, el } = await open();
     button(el, 'Suivant')!.click();
     harness.fixture.detectChanges();
     button(el, 'Suivant')!.click();
     harness.fixture.detectChanges();
-    expect(button(el, 'Passer ce membre')).toBeUndefined();
     const primary = button(el, 'Terminer la Daily');
     expect(primary).toBeDefined();
     primary!.click();
