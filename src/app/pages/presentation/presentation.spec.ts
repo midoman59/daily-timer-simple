@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
+import { DailyTimerService } from '../../services/daily-timer.service';
 import { TeamStore } from '../../services/team.store';
 import { Presentation } from './presentation';
 
@@ -39,5 +40,18 @@ describe('Presentation (S6 : voir la présentation de l\'équipe)', () => {
   it('ouvre l\'écran de modification avec « Modifier l\'équipe »', () => {
     const edit = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes("Modifier l'équipe"));
     expect(edit?.getAttribute('href')).toContain('equipe');
+  });
+
+  it('« Démarrer une Daily » lance le chronomètre et ouvre l\'écran de la Daily', () => {
+    const timer = TestBed.inject(DailyTimerService);
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const start = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Démarrer une Daily'),
+    )!;
+    start.click();
+    expect(timer.session()?.team.name).toBe('Équipe Alpha');
+    expect(router.navigate).toHaveBeenCalledWith(['/daily']);
+    timer.stop();
   });
 });

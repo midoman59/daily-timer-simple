@@ -1,0 +1,63 @@
+@if (team(); as team) {
+  <main class="daily">
+    <h1 #heading class="team-title" tabindex="-1">{{ team.name }}</h1>
+
+    <div class="clock-area">
+      <div class="overrun-slot">
+        @if (timer.isOverrun()) {
+          <p class="overrun-title">Temps dépassé</p>
+        }
+      </div>
+
+      <p
+        class="clock"
+        role="timer"
+        aria-label="Temps restant"
+        [class.is-overrun]="timer.isOverrun()"
+      >{{ timer.countdown() }}</p>
+
+      <p class="planned">
+        @if (timer.isOverrun()) {
+          <span class="overrun-value">+{{ timer.overrunLabel() }}</span>
+        } @else {
+          sur {{ team.durationMinutes }} min
+        }
+      </p>
+    </div>
+
+    <ol class="member-list">
+      @for (member of team.members; track member) {
+        <li class="member-row">
+          <span class="member-order">{{ $index + 1 }}</span>
+          <span class="member-name">{{ member }}</span>
+        </li>
+      }
+    </ol>
+
+    <div class="actions">
+      <button #stopTrigger type="button" class="btn btn-danger" (click)="askStop()">Arrêter la Daily</button>
+    </div>
+
+    <p class="sr-only" role="status">{{ announcement() }}</p>
+
+    @if (confirming()) {
+      <div class="scrim">
+        <div
+          class="dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="stop-title"
+          aria-describedby="stop-desc"
+          (keydown)="onDialogKeydown($event)"
+        >
+          <h2 id="stop-title" class="dialog-title">Arrêter la Daily ?</h2>
+          <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera.</p>
+          <div class="dialog-actions">
+            <button #continueButton type="button" class="btn btn-primary" (click)="continueDaily()">Continuer</button>
+            <button #confirmStop type="button" class="btn btn-danger" (click)="stopDaily()">Arrêter</button>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+}

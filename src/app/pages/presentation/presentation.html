@@ -16,9 +16,18 @@
 
     <div class="actions">
       <a class="btn btn-secondary" routerLink="/equipe">Modifier l'équipe</a>
-      <button type="button" class="btn btn-primary" [attr.aria-disabled]="team.members.length < 2 ? 'true' : null">
+      <button
+        type="button"
+        class="btn btn-primary"
+        [attr.aria-disabled]="team.members.length < 2 ? 'true' : null"
+        [attr.aria-describedby]="team.members.length < 2 ? 'start-hint' : null"
+        (click)="startDaily()"
+      >
         Démarrer une Daily
       </button>
+      @if (team.members.length < 2) {
+        <p id="start-hint" class="hint">Ajoutez au moins 2 membres pour démarrer.</p>
+      }
     </div>
   </main>
 }
