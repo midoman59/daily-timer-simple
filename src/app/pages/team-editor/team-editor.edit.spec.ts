@@ -34,6 +34,10 @@ describe('TeamEditor (S8 : modifier l\'équipe enregistrée)', () => {
     expect(names).toEqual(['Léa', 'Tom']);
   });
 
+  it('place le focus sur le titre à l\'ouverture', () => {
+    expect(document.activeElement).toBe(el.querySelector('h1'));
+  });
+
   it('enregistrer les changements met à jour l\'équipe', () => {
     const duration = el.querySelector<HTMLInputElement>('#duration')!;
     duration.value = '20';

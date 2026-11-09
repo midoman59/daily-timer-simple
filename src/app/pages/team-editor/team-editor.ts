@@ -48,7 +48,12 @@ export class TeamEditor {
   /** Vrai quand une équipe est déjà enregistrée : l'écran la modifie. */
   protected readonly isEdit = this.store.team() !== null;
 
+  private readonly title = viewChild<ElementRef<HTMLElement>>('title');
+
   constructor() {
+    // À l'arrivée sur l'écran, le focus va au titre : le lecteur d'écran annonce le nouvel écran (design 4.4).
+    afterNextRender(() => this.title()?.nativeElement.focus(), { injector: this.injector });
+
     const team = this.store.team();
     if (team) {
       this.name.setValue(team.name);

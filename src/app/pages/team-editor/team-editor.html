@@ -1,5 +1,5 @@
 <main class="page" (keydown.escape)="onEscape()">
-  <h1 class="page-title" tabindex="-1">{{ isEdit ? "Modifier l'équipe" : "Créer votre équipe" }}</h1>
+  <h1 #title class="page-title" tabindex="-1">{{ isEdit ? "Modifier l'équipe" : "Créer votre équipe" }}</h1>
 
   @if (unreadable()) {
     <p class="banner-error" role="alert">

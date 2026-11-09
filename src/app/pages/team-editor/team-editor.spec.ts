@@ -25,6 +25,10 @@ describe('TeamEditor (S1 : nom et durée)', () => {
     expect(el.querySelector<HTMLInputElement>('#duration')?.value).toBe('15');
   });
 
+  it('place le focus sur le titre à l\'ouverture (création)', () => {
+    expect(document.activeElement).toBe(el.querySelector('h1'));
+  });
+
   it('affiche le message de durée non entière pour « 7,5 »', () => {
     const input = el.querySelector<HTMLInputElement>('#duration')!;
     input.value = '7,5';
