@@ -72,8 +72,10 @@ p {
 }
 
 /* Titres d'écran : le focus programmatique n'affiche pas d'anneau (l'annonce suffit). */
-[tabindex='-1']:focus {
+[tabindex='-1']:focus,
+[tabindex='-1']:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 :focus-visible {
@@ -218,7 +220,9 @@ p {
   border-radius: var(--radius-group);
   box-shadow: var(--shadow-group);
   overflow: hidden;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
 }
 
 .row {

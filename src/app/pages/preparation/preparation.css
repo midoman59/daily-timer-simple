@@ -4,7 +4,15 @@
 }
 
 .row-time .row-main {
-  align-self: stretch;
+  align-self: center;
+}
+
+.row-time .row-title {
+  flex: none;
+}
+
+#order-heading {
+  margin: 24px 16px 8px;
 }
 
 .select {
