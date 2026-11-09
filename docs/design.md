@@ -2,486 +2,653 @@
 
 - Auteur : Sally, UX Designer (méthode BMAD)
 - Date : 2026-11-09
-- Source : `docs/brief.md`
+- Version : 2 (remplace la version 1)
+- Sources : `docs/brief.md` (version 2, cinq écrans, dix-huit stories), captures de la version 1, retour client « ne fait pas Apple-like ».
 - Statut : proposition à valider avec le client. Les points marqués **[à valider]** reprennent les choix du brief.
-- Périmètre : tokens, typographie, composants, écrans, mouvement, clavier, icône. Aucun code dans `src/`.
+- Périmètre : direction, tokens, typographie, composants, écrans, mouvement, clavier, icône. Aucun code dans `src/`, aucun test modifié.
 
 ---
 
-## 0. Direction artistique
+## 0. Changelog par rapport à la version 1
 
-Le rendu vise une finition calme, proche de l'écosystème Apple : fond gris très clair, surfaces blanches, texte quasi noir, un seul accent bleu, beaucoup d'air. L'interface reste sobre : l'information (le chronomètre, l'équipe) porte le visuel, pas la décoration.
-
-Interdits, à respecter dans toute l'implémentation :
-- champs HTML bruts (bordure par défaut du navigateur, police par défaut, champs non stylés) ;
-- aspect tableau de bord SaaS : cartes de statistiques, graphiques, pastilles multicolores, barres de navigation latérales ;
-- dégradés, halos, ombres fortes ;
-- emoji comme icônes. Toutes les icônes sont des SVG monochromes (trait 2 px, coins arrondis).
+| # | Changement | Raison |
+|---|---|---|
+| 1 | Trois écrans remplacés par **cinq** : Mes équipes (a), Création et modification (b), Présentation (c), Préparation de la Daily (d), Daily (e). | Brief version 2, section 2. |
+| 2 | Champ « Durée de la Daily », son message, son composant numérique et la règle des 30 secondes **supprimés**. | Brief version 2 : l'équipe ne contient que son nom et ses membres. |
+| 3 | Nouvel écran (d) : temps de parole par membre (1 à 5 min) et choix de l'ordre (équipe ou aléatoire), sans rien enregistrer. | Brief version 2, sections 2 et 3.3 à 3.4. |
+| 4 | Le chronomètre démarre au clic sur « Commencer la Daily » (écran d), et non plus sur « Démarrer une Daily » (écran c). | Corrige une incohérence de la version 1 avec le brief (section 2, écran e). |
+| 5 | Le bouton « Ajouter » n'est plus un gros bouton bleu plein : c'est un bouton texte avec icône « plus ». Le seul bouton plein de l'écran est l'action principale. | Retour client : trop lourd, ressemble à un formulaire. Une action principale par écran. |
+| 6 | Champs : la bordure grise complète disparaît. Le champ est une ligne blanche avec un filet inférieur à 3:1 et un libellé au-dessus. | Retour client (« champs à bordure grise »). Le filet reste nécessaire pour l'identification du champ (WCAG 1.4.11). |
+| 7 | Les écrans s'enchaînent en glissement horizontal (avant : à droite, retour : vers la droite) avec fondu. Plus de translation verticale. | Principe de cohérence spatiale : ce qui sort par un côté revient par le même côté. |
+| 8 | Le bandeau d'erreur perd sa bordure gauche de 4 px. Il devient un bandeau complet teinté avec icône et texte. | Une bordure latérale colorée est un signe de gabarit ; l'information est portée par l'icône et le texte. |
+| 9 | Appui des boutons : `scale(0.98)` devient `scale(0.97)`, en `120 ms`. | Une réponse immédiate et visible ; standard retenu. |
+| 10 | Courbe de sortie `cubic-bezier(0.4, 0, 1, 1)` (ease-in) remplacée par une courbe `ease-out`. | Un ease-in retarde le premier mouvement, le moment où l'utilisateur regarde le plus. |
+| 11 | Palette : gris secondaire passe de `#5C5C62` à `#6E6E73`, bleu d'accent de `#0061C2` à `#0066CC`. Fond `#F5F5F7` et surfaces blanches conservés. | Gris et bleu de référence de l'écosystème Apple. Tous les couples sont recalculés (section 2.2). |
+| 12 | Barre d'actions mobile en matériau translucide (flou léger) et dialogue de confirmation en feuille centrée. | Hiérarchie par la matière ; le dialogue sert une action irréversible. |
+| 13 | Typographie : échelle SF Pro (taille et crénage par taille), chronomètre en 200 à 300 de graisse. Pas de police web. | Lisibilité à grande taille et cohérence système. |
+| 14 | Dépassement : libellé « Temps dépassé » et « +mm:ss » conservés, couleur `#B3261E` (6.54:1 sur blanc). | Texte d'abord, couleur ensuite. |
+| 15 | Passer un membre : action « Passer » par ligne (membres à venir) et « Passer ce membre » pour celui qui parle. Statuts distincts « fait » et « passé ». | Brief sections 3.5 et S14-S15. La version 1 ne couvrait pas ces statuts. |
+| 16 | Icône : contour de la tige rattaché à la couronne et à l'anneau, anneau et aiguille élargis, couleur alignée sur l'accent. Voir section 8. | L'ancienne tige flottait à 0,6 px de l'anneau à 32 px. |
 
 ---
 
-## 1. Tokens
+## 1. Direction
 
-### 1.1 Couleurs (thème clair uniquement)
+**Une phrase.** Une application d'équipe qui se fait oublier : la page est un fond gris très clair, les informations sont des surfaces blanches, le chronomètre est le seul élément qui pèse lourd à l'écran.
 
-Tous les rapports sont calculés selon la formule WCAG 2.x (luminance relative). Le seuil AA est 4.5:1 pour le texte normal, 3:1 pour le texte grand (au moins 24 px, ou 18.66 px en gras) et les composants d'interface.
+**Ce qu'on évite.**
+- Les champs HTML bruts : bordure grise complète, police par défaut, contour natif.
+- Le formulaire générique : titre, champs empilés, gros bouton bleu au milieu.
+- L'aspect tableau de bord SaaS : cartes de statistiques, barres latérales, pastilles multicolores, graphiques.
+- Les dégradés, les halos, les ombres fortes, les bordures latérales colorées.
+- Les emoji comme icônes. Toutes les icônes sont des SVG monochromes, trait 2 px, coins arrondis.
+- Les animations sur les actions au clavier, et les animations qui ne peuvent pas être interrompues.
+
+**Principe.** Une action principale par écran, placée au même endroit. L'écran du chronomètre n'est jamais l'écran d'entrée.
+
+---
+
+## 2. Tokens (thème clair uniquement)
+
+### 2.1 Couleurs
+
+Tous les rapports sont calculés selon la formule WCAG 2.x (luminance relative). Seuils : 4.5:1 pour le texte normal, 3:1 pour le texte grand (24 px, ou 18,66 px en gras) et les composants d'interface (WCAG 1.4.11).
 
 | Token | Valeur | Rôle |
 |---|---|---|
 | `--color-bg` | `#F5F5F7` | Fond de page |
-| `--color-surface` | `#FFFFFF` | Cartes, champs, zone de liste |
-| `--color-surface-muted` | `#E8E8ED` | Fond de bouton secondaire au survol, pastilles de compteur |
+| `--color-surface` | `#FFFFFF` | Groupes de liste, champs, dialogue |
+| `--color-surface-sunken` | `#EBEBF0` | Fond de survol du bouton secondaire, pastille de compteur |
+| `--color-surface-pressed` | `#DCDCE1` | Fond d'appui du bouton secondaire et de l'icône |
 | `--color-text` | `#1D1D1F` | Texte principal, titres, chronomètre |
-| `--color-text-secondary` | `#5C5C62` | Libellés, aides, compteur, durée prévue |
-| `--color-text-disabled` | `#6E6E73` | Texte d'un élément désactivé (voir 1.3) |
-| `--color-accent` | `#0061C2` | Accent unique : bouton principal, lien, focus |
-| `--color-accent-pressed` | `#004A8F` | Bouton principal à l'appui |
-| `--color-accent-hover` | `#00509E` | Bouton principal au survol |
-| `--color-success` | `#17692D` | Confirmation d'enregistrement |
+| `--color-text-secondary` | `#6E6E73` | Libellés secondaires, aides, métadonnées, « passé » |
+| `--color-accent` | `#0066CC` | Accent unique : bouton principal, lien, focus, « Ajouter » |
+| `--color-accent-hover` | `#0058B3` | Bouton principal au survol |
+| `--color-accent-pressed` | `#004C99` | Bouton principal et texte d'accent à l'appui |
+| `--color-success` | `#1E7A3A` | Confirmation, statut « fait » |
 | `--color-success-bg` | `#E6F4EA` | Fond du bandeau de succès |
-| `--color-error` | `#B3261E` | Message d'erreur de champ, bordure d'erreur |
+| `--color-error` | `#C4271C` | Message d'erreur, icône, bouton « Arrêter » |
 | `--color-error-bg` | `#FBE9E7` | Fond du bandeau d'erreur |
-| `--color-overrun` | `#9E1C16` | Chronomètre en dépassement, libellé « Temps dépassé » |
-| `--color-border` | `#C7C7CC` | Séparateurs et bordure de carte (décoratif) |
-| `--color-border-control` | `#8A8A8F` | Bordure de champ et de bouton secondaire (composant) |
-| `--color-focus` | `#0061C2` | Anneau de focus, 2 px, décalage 2 px |
+| `--color-overrun` | `#B3261E` | Chronomètre et libellé en dépassement |
+| `--color-border-control` | `#808086` | Filet de champ, bordure de bouton secondaire (composant) |
+| `--color-separator` | `#D2D2D7` | Séparateurs entre lignes (décoratif) |
+| `--color-focus` | `#0066CC` | Anneau de focus |
+| `--color-scrim` | `rgba(29, 29, 31, 0.32)` | Voile derrière le dialogue |
+| `--color-material` | `rgba(255, 255, 255, 0.72)` | Barre d'actions mobile (matériau translucide) |
 
-### 1.2 Contrastes vérifiés
+### 2.2 Contrastes vérifiés
 
 | Couple texte / fond | Ratio | Verdict |
 |---|---|---|
-| `--color-text` sur `--color-bg` | 15.46:1 | AA et AAA |
-| `--color-text` sur `--color-surface` | 16.83:1 | AA et AAA |
-| `--color-text-secondary` sur `--color-bg` | 6.10:1 | AA |
-| `--color-text-secondary` sur `--color-surface` | 6.64:1 | AA |
-| `--color-text-secondary` sur `--color-surface-muted` | 5.44:1 | AA |
-| Blanc sur `--color-accent` (bouton principal) | 6.02:1 | AA |
-| Blanc sur `--color-accent-hover` | 7.95:1 | AA |
-| Blanc sur `--color-accent-pressed` | 8.84:1 | AA |
-| `--color-accent` sur `--color-surface` (lien, bouton secondaire) | 6.02:1 | AA |
-| `--color-accent` sur `--color-bg` | 5.53:1 | AA |
-| `--color-error` sur `--color-surface` | 6.54:1 | AA |
-| `--color-error` sur `--color-error-bg` | 5.58:1 | AA |
-| `--color-error` sur `--color-surface-muted` | 5.35:1 | AA |
-| `--color-success` sur `--color-surface` | 6.79:1 | AA |
-| `--color-success` sur `--color-success-bg` | 5.98:1 | AA |
-| `--color-overrun` sur `--color-bg` | 7.33:1 | AA |
-| `--color-overrun` sur `--color-surface` | 7.98:1 | AA |
-| `--color-overrun` sur `--color-error-bg` | 6.81:1 | AA |
-| `--color-text` sur `--color-error-bg` | 14.35:1 | AA et AAA |
-| `--color-text` sur `--color-success-bg` | 14.82:1 | AA et AAA |
-| `--color-border-control` sur `--color-surface` (bordure de champ) | 3.44:1 | AA composant (3:1) |
-| `--color-border-control` sur `--color-bg` | 3.16:1 | AA composant (3:1) |
-| `--color-focus` sur `--color-surface` et `--color-bg` | 6.02:1 et 5.53:1 | AA composant |
-| `--color-border` sur `--color-surface` | 1.68:1 | Décoratif uniquement, jamais porteur d'information |
-| `--color-text-disabled` sur `--color-surface-muted` | 4.15:1 | Exempté : élément désactivé (WCAG 1.4.3). Le fond et le curseur signalent aussi l'état |
+| `--color-text` sur `--color-bg` | 15,46:1 | AA et AAA |
+| `--color-text` sur `--color-surface` | 16,83:1 | AA et AAA |
+| `--color-text` sur `--color-surface-pressed` | 12,32:1 | AA et AAA |
+| `--color-text` sur `--color-error-bg` | 14,35:1 | AA et AAA |
+| `--color-text` sur `--color-success-bg` | 14,82:1 | AA et AAA |
+| `--color-text-secondary` sur `--color-bg` | 4,66:1 | AA |
+| `--color-text-secondary` sur `--color-surface` | 5,07:1 | AA |
+| Blanc sur `--color-accent` (bouton principal) | 5,57:1 | AA |
+| Blanc sur `--color-accent-hover` | 6,89:1 | AA |
+| Blanc sur `--color-accent-pressed` | 8,42:1 | AA |
+| `--color-accent` sur `--color-surface` (lien, secondaire, « Ajouter ») | 5,57:1 | AA |
+| `--color-accent` sur `--color-bg` | 5,11:1 | AA |
+| `--color-accent` sur `--color-surface-sunken` | 4,68:1 | AA |
+| `--color-accent-pressed` sur `--color-surface-pressed` | 6,16:1 | AA |
+| `--color-error` sur `--color-surface` | 5,75:1 | AA |
+| `--color-error` sur `--color-bg` | 5,28:1 | AA |
+| `--color-error` sur `--color-error-bg` | 4,90:1 | AA |
+| `--color-overrun` sur `--color-surface` | 6,54:1 | AA |
+| `--color-overrun` sur `--color-bg` | 6,00:1 | AA |
+| `--color-overrun` sur `--color-error-bg` | 5,58:1 | AA |
+| `--color-success` sur `--color-surface` | 5,38:1 | AA |
+| `--color-success` sur `--color-success-bg` | 4,74:1 | AA |
+| `--color-border-control` sur `--color-surface` (filet de champ) | 3,93:1 | AA composant (3:1) |
+| `--color-border-control` sur `--color-bg` | 3,61:1 | AA composant (3:1) |
+| `--color-focus` sur `--color-surface` et `--color-bg` | 5,57:1 et 5,11:1 | AA composant |
+| `--color-separator` sur `--color-surface` | 1,51:1 | Décoratif uniquement |
+| Texte désactivé `#6E6E73` sur `--color-surface-sunken` | 4,27:1 | Exempté (élément désactivé, WCAG 1.4.3) |
 
-**Ratio minimal relevé pour le texte porteur d'information : 5.35:1** (erreur sur `--color-surface-muted`). Les autres couples de texte porteur d'information sont tous supérieurs : secondaire sur muté 5.44:1, erreur sur bandeau 5.58:1, texte principal partout au-dessus de 11:1. Tous dépassent donc 4.5:1.
+**Ratio minimal du texte porteur d'information : 4,66:1** (secondaire sur fond). Tous les couples porteurs d'information dépassent 4,5:1.
 
-Règle : la couleur ne porte jamais seule une information. Erreur = icône + texte. Dépassement = texte « Temps dépassé » + « +mm:ss » + couleur. Succès = texte.
+**Règles.** La couleur ne porte jamais seule une information.
+- Erreur = icône + texte + bordure du champ.
+- Dépassement = libellé « Temps dépassé » + « +mm:ss » + couleur.
+- Succès = icône + texte.
+- Statut d'un membre = libellé (« fait », « passé »), jamais la couleur seule.
 
-### 1.3 Règle des états désactivés
+**Retiré de la version 1 :** `--color-text-disabled` `#6E6E73` sur `#E8E8ED` (4,15:1) devient le texte secondaire ; le texte désactivé reste `--color-text-secondary` sur `--color-surface-sunken`, ce qui conserve 4,27:1.
 
-Un élément désactivé garde son libellé visible, passe sur `--color-surface-muted` avec le texte `--color-text-disabled`, perd sa bordure forte et prend `cursor: not-allowed`. Son motif (le message qui explique pourquoi) reste affiché sous le composant, lié par `aria-describedby`.
+### 2.3 États désactivés
+
+Un élément désactivé garde son libellé visible. Son fond passe à `--color-surface-sunken`, son texte à `--color-text-secondary`, il perd son filet fort et prend `cursor: not-allowed`. Le message qui explique pourquoi reste affiché sous le composant, lié par `aria-describedby`. Un bouton désactivé reste focalisable (`aria-disabled="true"`) pour que ce message soit lu (voir 4.1).
 
 ---
 
-## 2. Typographie, espacements, rayons, ombres
+## 3. Typographie, espacements, rayons, ombres, mouvement
 
-### 2.1 Police
+### 3.1 Police
 
 ```
 font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
              "Segoe UI", system-ui, sans-serif;
 ```
 
-Le rendu SF Pro est obtenu sur macOS et iOS ; sur Windows la pile retombe sur Segoe UI. Aucune police web n'est chargée : pas de requête réseau supplémentaire, cohérent avec la contrainte de fonctionnement local.
+Aucune police web chargée : pas de requête réseau, cohérent avec le fonctionnement local. Sur macOS et iOS, SF Pro ; sur Windows, Segoe UI.
 
-Chiffres du chronomètre : `font-variant-numeric: tabular-nums;` (les chiffres ont la même largeur, le décompte ne « saute » pas).
+Chiffres du chronomètre et des compteurs : `font-variant-numeric: tabular-nums;` (les chiffres gardent la même largeur, le décompte ne se déplace pas).
 
-### 2.2 Échelle typographique
+### 3.2 Échelle typographique
 
-| Token | Taille / interligne | Graisse | Usage |
-|---|---|---|---|
-| `--type-timer` | `clamp(72px, 16vw, 168px)` / 1 | 300 | Décompte « mm:ss », écran 3 |
-| `--type-title-1` | 34 px / 40 px | 600 | Titre d'écran (« Créer l'équipe », nom d'équipe sur écran 2) |
-| `--type-title-2` | 22 px / 28 px | 600 | Titres de section, nom d'équipe sur écran 3 |
-| `--type-body` | 17 px / 24 px | 400 | Texte courant, nom de membre, champs |
-| `--type-body-strong` | 17 px / 24 px | 600 | Bouton principal, libellé de champ |
-| `--type-callout` | 15 px / 20 px | 400 | Messages d'erreur, aides, compteur |
-| `--type-caption` | 13 px / 18 px | 500 | Étiquettes de section en capitales légères, numéro d'ordre |
+Principe Apple : l'interlignage et le crénage varient avec la taille. Les grands textes sont resserrés, les petits légèrement élargis.
 
-Mobile (sous 600 px) : `--type-title-1` passe à 28 px / 34 px, le décompte est plafonné par le `clamp` ci-dessus. Corps de texte : jamais sous 16 px sur les champs, pour éviter le zoom automatique d'iOS.
+| Token | Taille / interligne | Graisse | Crénage | Usage |
+|---|---|---|---|---|
+| `--type-timer` | `clamp(72px, 18vw, 184px)` / 1 | 300 | -0,02 em | Décompte « mm:ss » (écran e) |
+| `--type-large-title` | 34 px / 41 px | 600 | -0,015 em | Titre d'écran (« Mes équipes », nom d'équipe) |
+| `--type-title-2` | 22 px / 28 px | 600 | -0,01 em | Titres de section, titre de dialogue |
+| `--type-body` | 17 px / 24 px | 400 | 0 | Texte courant, champs, nom de membre |
+| `--type-body-strong` | 17 px / 24 px | 600 | 0 | Libellé de champ, bouton principal |
+| `--type-callout` | 15 px / 20 px | 400 | 0 | Messages d'erreur et d'aide, métadonnées |
+| `--type-footnote` | 13 px / 18 px | 500 | +0,01 em | Libellés de groupe en capitales légères, numéro d'ordre |
 
-### 2.3 Espacements (base 4 px)
+Mobile sous 600 px : `--type-large-title` passe à 28 px / 34 px. Les champs restent à 17 px minimum (pas de zoom automatique sur iOS). Espacements en `rem` ou `px` selon la section 3.3 ; le texte peut être agrandi sans casser la mise en page.
+
+### 3.3 Espacements (base 4 px)
 
 | Token | Valeur | Usage type |
 |---|---|---|
-| `--space-1` | 4 px | Écart icône / texte |
-| `--space-2` | 8 px | Écart entre une ligne de membre et son bouton |
-| `--space-3` | 12 px | Écart entre champ et message |
-| `--space-4` | 16 px | Marge latérale mobile, écart entre éléments liés |
-| `--space-5` | 24 px | Écart entre blocs d'un écran |
-| `--space-6` | 32 px | Marge de carte (mobile) |
-| `--space-7` | 48 px | Marge de carte (desktop) |
-| `--space-8` | 64 px | Respiration haut / bas de page desktop |
+| `--space-1` | 4 px | Icône et texte |
+| `--space-2` | 8 px | Entre une ligne et son bouton |
+| `--space-3` | 12 px | Entre un champ et son message |
+| `--space-4` | 16 px | Marge latérale mobile, entre éléments liés |
+| `--space-5` | 24 px | Entre deux groupes d'un écran |
+| `--space-6` | 32 px | Marge haute des titres d'écran (mobile) |
+| `--space-7` | 48 px | Marge interne du groupe (desktop) |
+| `--space-8` | 64 px | Respiration haut de page (desktop) |
 
-Marge latérale : 16 px sur mobile, sans exception. Largeur de lecture maximale de la colonne : 560 px.
+Marge latérale : 16 px sur mobile, sans exception. Largeur maximale de colonne : 560 px. Hauteur de ligne de liste : 52 px minimum.
 
-### 2.4 Rayons
-
-| Token | Valeur | Usage |
-|---|---|---|
-| `--radius-control` | 10 px | Champs, boutons secondaires, bouton icône |
-| `--radius-button-primary` | 999 px (capsule) | Boutons principaux |
-| `--radius-card` | 16 px | Carte d'équipe, zone de liste |
-| `--radius-pill` | 999 px | Compteur de membres |
-
-### 2.5 Ombres (légères, jamais en dégradé)
+### 3.4 Rayons
 
 | Token | Valeur | Usage |
 |---|---|---|
-| `--shadow-card` | `0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04)` | Carte, zone de liste |
-| `--shadow-raised` | `0 4px 16px rgba(0,0,0,0.08)` | Dialogue de confirmation, barre d'action mobile |
-| `--shadow-focus` | `0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus)` | Anneau de focus (remplace l'ombre au focus) |
+| `--radius-control` | 12 px | Champs, boutons secondaires, bouton icône |
+| `--radius-group` | 14 px | Groupes de liste (style réglages), dialogue |
+| `--radius-capsule` | 999 px | Boutons principaux et secondaires, compteur, segments |
 
-### 2.6 Mouvement
+### 3.5 Ombres et matériaux
+
+| Token | Valeur | Usage |
+|---|---|---|
+| `--shadow-group` | `0 1px 2px rgba(0,0,0,0.04)` | Groupe de liste sur le fond gris (presque invisible, pour le relief) |
+| `--shadow-raised` | `0 12px 32px rgba(0,0,0,0.16)` | Dialogue de confirmation |
+| `--shadow-focus` | `0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus)` | Anneau de focus clavier |
+| `--material-blur` | `blur(20px) saturate(180%)` | Barre d'actions mobile |
+
+Le matériau translucide ne se superpose jamais à un autre matériau. En `prefers-reduced-transparency: reduce`, la barre devient `--color-surface` opaque et sans flou.
+
+### 3.6 Mouvement
 
 | Token | Valeur |
 |---|---|
-| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` |
-| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` |
-| `--duration-fast` | 150 ms |
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` : entrées, retours immédiats |
+| `--ease-drawer` | `cubic-bezier(0.32, 0.72, 0, 1)` : dialogue, feuille, changement d'écran |
+| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` : changements de couleur et de fond |
+| `--duration-press` | 120 ms |
+| `--duration-hover` | 150 ms |
+| `--duration-fast` | 180 ms |
 | `--duration-base` | 240 ms |
-| `--duration-slow` | 320 ms |
+| `--duration-screen` | 280 ms (glissement d'écran, sous 300 ms) |
+
+Règles :
+- Aucune animation au-delà de 300 ms sur un élément d'interface.
+- Les animations sont des `transition` (pas de `@keyframes`) sur des propriétés nommées (`transform`, `opacity`, `background-color`). Jamais `transition: all`.
+- Aucun `scale(0)` : les éléments apparaissent de `scale(0.96)` avec `opacity: 0`, ou de `translateX(±24px)` pour un écran.
+- Aucune animation pour les actions déclenchées au clavier (Entrée pour ajouter un membre, Échap, Tab).
+- Le chronomètre ne s'anime pas : le chiffre change, il ne glisse pas.
+- Le mouvement est interruptible : une transition part de la valeur en cours, jamais de la cible.
 
 ---
 
-## 3. Composants
+## 4. Composants et états
 
-Chaque composant est décrit avec ses états : repos, survol (`:hover`, seulement sur dispositif avec pointeur fin : `@media (hover: hover)`), focus clavier (`:focus-visible`), appui (`:active`), désactivé (`disabled` ou `aria-disabled="true"`).
+Chaque composant décrit : repos, survol (`@media (hover: hover) and (pointer: fine)` uniquement), focus clavier (`:focus-visible`), appui (`:active`, instantané), désactivé (`disabled` ou `aria-disabled="true"`).
 
-Règle commune de focus : anneau `--shadow-focus` affiché uniquement au clavier (`:focus-visible`). Aucune suppression de contour sans remplacement.
+Règle commune de focus : anneau `--shadow-focus` au clavier uniquement. Aucune suppression de contour sans remplacement.
 
-Zone cliquable minimale : 44 x 44 px pour tout bouton, y compris le bouton icône « Supprimer ».
+Zone cliquable minimale : 44 × 44 px, y compris le bouton icône « Supprimer ».
 
-### 3.1 Bouton principal
+### 4.1 Bouton principal
 
-- Forme : capsule, hauteur 52 px, padding horizontal 28 px, largeur minimale 160 px, pleine largeur sur mobile.
+- Forme : capsule `--radius-capsule`, hauteur 52 px, padding horizontal 28 px, largeur minimale 160 px ; pleine largeur sur mobile.
 - Style : fond `--color-accent`, texte blanc `--type-body-strong`.
-- Repos : fond `--color-accent`, ombre aucune.
+- Repos : fond `--color-accent`.
 - Survol : fond `--color-accent-hover`.
 - Focus clavier : `--shadow-focus`.
-- Appui : fond `--color-accent-pressed`, `transform: scale(0.98)` pendant 120 ms.
-- Désactivé : fond `--color-surface-muted`, texte `--color-text-disabled`, pas de survol ni d'appui.
-- Libellés utilisés : « Enregistrer l'équipe », « Démarrer une Daily ».
+- Appui : fond `--color-accent-pressed`, `transform: scale(0.97)` en `120 ms` `--ease-out`. Le retour au repos est plus lent que l'appui, pour que l'appui se sente.
+- Désactivé : fond `--color-surface-sunken`, texte `--color-text-secondary`, pas de survol ni d'appui.
+- Libellés : « Enregistrer l'équipe », « Démarrer une Daily », « Commencer la Daily », « Passer au suivant » / « Terminer la Daily », « Continuer » (dialogue), « Nouvelle équipe ».
+- Par écran : **un seul** bouton principal plein, à la même position dans le flux.
 
-### 3.2 Bouton secondaire
+### 4.2 Bouton secondaire
 
-- Forme : capsule, hauteur 52 px (même hauteur que le principal pour que la paire tienne).
-- Style : fond `--color-surface`, bordure 1 px `--color-border-control`, texte `--color-accent`. Libellés : « Modifier l'équipe », « Arrêter la Daily ».
-- Survol : fond `--color-surface-muted`.
+- Forme : capsule, hauteur 52 px, padding horizontal 24 px.
+- Style : fond `--color-surface`, bordure 1 px `--color-border-control`, texte `--color-accent`, `--type-body-strong`.
+- Survol : fond `--color-surface-sunken`.
 - Focus clavier : `--shadow-focus`.
-- Appui : fond `#D8D8DE` (variante de `--color-surface-muted`), texte `--color-accent-pressed` `#004A8F` : contraste 6.23:1.
-- Désactivé : bordure `--color-border`, texte `--color-text-disabled`.
+- Appui : fond `--color-surface-pressed`, texte `--color-accent-pressed` (6,16:1).
+- Désactivé : bordure `--color-separator`, texte `--color-text-secondary`.
+- Libellés : « Modifier l'équipe ».
+- Variante destructive : texte `--color-error` (« Arrêter la Daily » dans le bouton de la Daily, « Arrêter » du dialogue).
 
-Variante « Arrêter la Daily » : même style mais texte `--color-error`. Contraste sur `--color-surface` : 6.54:1.
+### 4.3 Lien d'action (« Annuler », « Mes équipes »)
 
-### 3.3 Lien d'action « Annuler »
+- Texte seul, `--type-body`, couleur `--color-accent`. Avec icône chevron pour le retour (`‹ Mes équipes`).
+- Zone cliquable 44 px de haut minimum.
+- Survol : soulignement. Focus : `--shadow-focus` avec rayon 8 px.
 
-- Texte seul, `--type-body`, couleur `--color-accent`, soulignement au survol.
-- Zone cliquable : 44 px de haut minimum.
-- Focus clavier : `--shadow-focus` avec rayon 8 px.
+### 4.4 Bouton « Ajouter » (texte avec icône)
 
-### 3.4 Bouton icône
+- Icône « plus » SVG 20 px et libellé « Ajouter », texte `--color-accent`, `--type-body-strong`, dans une zone de 44 px.
+- Pas de fond plein, pas de bordure. Il ne concurrence pas le bouton principal.
+- Désactivé (champ vide) : couleur `--color-text-secondary`, pas d'interaction. Le message « Saisissez un prénom. » n'apparaît qu'après une tentative.
 
-- Forme : cercle 44 x 44 px, icône SVG 20 px, trait 2 px, couleur `--color-text-secondary`.
+### 4.5 Bouton icône
+
+- Forme : cercle 44 × 44 px, icône SVG 20 px, trait 2 px, couleur `--color-text-secondary`.
 - Repos : fond transparent.
-- Survol : fond `--color-surface-muted`, icône `--color-text`.
+- Survol : fond `--color-surface-sunken`, icône `--color-text`.
+- Appui : fond `--color-surface-pressed`, icône `--color-text` (12,32:1 sur ce fond).
+- Focus : `--shadow-focus`.
+- Désactivé : icône `--color-text-secondary` à 50 % d'opacité, pas d'interaction.
+- `aria-label` explicite (« Supprimer Thomas »), `title` au survol pour les souris.
+
+### 4.6 Champ de texte
+
+- Structure : libellé visible au-dessus (`--type-body-strong`, `--color-text`), champ, aide ou erreur dessous. Le placeholder ne remplace jamais le libellé.
+- Champ : hauteur 52 px, padding 12 px 0 (le champ est une ligne dans un groupe blanc), texte `--type-body` 17 px.
+- Identification : filet inférieur 1 px `--color-border-control` (3,93:1 sur blanc), pour que le champ soit identifiable sans bordure complète.
+- Survol : filet `--color-text-secondary`.
+- Focus clavier : filet 2 px `--color-focus` et `--shadow-focus` sur la ligne. Le contour natif est retiré et remplacé.
+- Erreur : filet 2 px `--color-error`, icône d'alerte SVG 16 px à droite du champ, `aria-invalid="true"`.
+- Désactivé : texte `--color-text-secondary`, filet pointillé `--color-separator`, `disabled`.
+
+Message d'erreur ou d'aide sous le champ :
+- `<p id="{champ}-erreur">` avec icône SVG 16 px `aria-hidden` et texte `--type-callout` `--color-error`.
+- Le champ porte `aria-describedby="{champ}-aide {champ}-erreur"` (l'aide puis l'erreur). Sans erreur, seul `{champ}-aide` est référencé.
+- Le message apparaît au blur ou à la tentative d'enregistrement, jamais pendant la frappe d'un caractère valide.
+- Apparition : fondu et translation de 4 px, `--duration-base`, `--ease-out`. Pas d'apparition si l'utilisateur a réduit les mouvements (fondu seul).
+
+Champs concernés : « Nom d'équipe » (« Donnez un nom à votre équipe. ») ; « Prénom » (« Saisissez un prénom. », « Ce prénom existe déjà dans l'équipe. », « Une équipe ne peut pas dépasser 15 membres. », « Le prénom ne dépasse pas 30 caractères. »).
+
+### 4.7 Sélecteur de temps (1 à 5 min par membre)
+
+- Élément : `<select>` natif stylé en capsule : texte « 2 min » et chevron SVG, hauteur 44 px, fond `--color-surface-sunken`, pas de bordure, `--type-body`.
+- Pourquoi un `<select>` natif : le brief le prévoit ; il garantit le clavier, les lecteurs d'écran et le sélecteur natif du téléphone (roulette iOS). Le choix d'un stepper « − 2 min + » a été écarté : il rend la valeur hors bornes impossible, ce qui retire le message d'erreur exigé par le brief.
+- Options : « 1 min », « 2 min », « 3 min », « 4 min », « 5 min ».
+- Repos : fond `--color-surface-sunken`. Survol : fond `--color-surface-pressed`.
 - Focus clavier : `--shadow-focus`.
-- Appui : fond `#D8D8DE`, icône `--color-text` (11.86:1).
-- Désactivé : icône `--color-text-disabled`, pas d'interaction.
-- Un bouton icône a toujours un `aria-label` explicite, par exemple « Supprimer Thomas ». L'info-bulle native `title` est ajoutée au survol pour les souris.
+- Valeur absente ou hors bornes : capsule à contour `--color-error`, message sous la ligne du membre (« Choisissez une durée entre 1 et 5 minutes. »), lié par `aria-describedby`, bouton « Commencer la Daily » désactivé.
+- Option « Appliquer à tous » [à valider] : bouton secondaire compact au-dessus du groupe, il applique la valeur du premier membre à tous.
 
-### 3.5 Champ de texte
+### 4.8 Choix de l'ordre de passage
 
-- Structure : libellé visible au-dessus (`--type-body-strong`, `--color-text`), champ, message d'aide ou d'erreur dessous. Jamais de texte uniquement dans le placeholder.
-- Champ : hauteur 52 px, padding 14 px 16 px, fond `--color-surface`, bordure 1 px `--color-border-control`, rayon `--radius-control`, texte `--type-body` 17 px (évite le zoom iOS).
-- Repos : bordure `--color-border-control`.
-- Survol : bordure `#6E6E73`.
-- Focus clavier : bordure `--color-focus` 2 px et `--shadow-focus` ; le contour natif est retiré mais remplacé.
-- Erreur : bordure 2 px `--color-error`, icône d'alerte SVG 16 px à droite du champ, `aria-invalid="true"`.
-- Désactivé : fond `--color-surface-muted`, texte `--color-text-disabled`, `disabled`.
+- Contrôle segmenté iOS : deux segments « Ordre de l'équipe » et « Ordre aléatoire » dans une capsule `--color-surface-sunken`, hauteur 36 px (zone de 44 px par segment via `padding`).
+- Segment actif : fond `--color-surface`, ombre `--shadow-group`, texte `--color-text`, `--type-body-strong`. Segment inactif : texte `--color-text-secondary`.
+- Sémantique : `role="radiogroup"` avec deux `<input type="radio">` masqués visuellement et étiquetés par leur segment. Flèches gauche et droite changent de choix.
+- Transition du segment actif : `transform` 240 ms `--ease-drawer` (le fond glisse vers le segment choisi). Au clavier, le changement est instantané (règle emil : pas d'animation sur les actions clavier).
+- Défaut « Ordre de l'équipe » [à valider].
 
-Message d'erreur sous le champ :
-- Élément `<p id="{champ}-erreur" class="field-error">` avec une icône SVG 16 px (`aria-hidden`) et le texte, `--type-callout`, couleur `--color-error`.
-- Le champ porte `aria-describedby="{champ}-aide {champ}-erreur"` (l'aide reste lue, puis l'erreur). Si l'erreur n'existe pas, seul `{champ}-aide` est référencé.
-- Le message apparaît au moment où l'erreur est constatée (blur ou tentative d'enregistrement), jamais pendant la frappe d'un caractère valide.
-- Apparition : fondu et translation de 4 px vers le bas, `--duration-base`.
+### 4.9 Ligne de membre avec action « Passer »
 
-Champs concernés et messages (repris du brief, section 3.1) : « Nom d'équipe » avec « Donnez un nom à votre équipe. » ; « Prénom » avec « Saisissez un prénom. », « Ce prénom existe déjà dans l'équipe. », « Une équipe ne peut pas dépasser 15 membres. » ; « Durée de la Daily » avec le message de durée.
+- Ligne : hauteur minimale 52 px, padding 12 px 8 px 12 px 16 px, séparateur 1 px `--color-separator` (retrait de 16 px à gauche, comme les réglages).
+- Contenu : numéro d'ordre (`--type-footnote`, `--color-text-secondary`, `tabular-nums`, largeur fixe 24 px), prénom (`--type-body`, `--color-text`), à droite l'action.
+- Action « Passer » (écran e, membres à venir) : bouton texte `--color-accent`, `--type-callout`, zone 44 px de haut, libellé complet « Passer » avec `aria-label="Passer Thomas"`.
+- Statut « fait » (membre quitté) : icône coche SVG 16 px `--color-success` et libellé « fait » en `--color-text-secondary`. Pas d'action.
+- Statut « passé » : icône barre oblique SVG 16 px `--color-text-secondary` et libellé « passé ». Pas d'action. Le nom reste en `--color-text-secondary`.
+- Membre courant : fond `--color-surface-sunken`, prénom en `--type-body-strong`, indicateur « En cours » en `--type-footnote` `--color-accent`. Pas de bouton « Passer » sur la ligne (l'action est dans la zone principale).
+- Repos, survol de ligne (`#F9F9FB`, au pointeur fin uniquement).
+- Lecture par lecteur d'écran : liste `<ol>`, chaque statut est dans le texte de la ligne (« Thomas, fait »).
 
-### 3.6 Champ numérique (durée)
+### 4.10 Compteur de membres
 
-- Même structure que le champ de texte, avec `inputmode="numeric"`, `pattern="[0-9]*"` et `autocomplete="off"`.
-- Suffixe « min » affiché dans le champ, à droite, `--color-text-secondary`, non lu par la saisie.
-- Largeur : 160 px (le champ ne demande pas toute la largeur).
-- Pré-rempli à 15 **[à valider]**.
-- Messages : « Indiquez la durée de la Daily. » (vide), « Saisissez un nombre entier de minutes. » (décimal ou texte, par exemple « 7,5 »), « La durée doit être comprise entre 1 et 120 minutes. » (hors bornes), « La durée divisée par le nombre de membres doit être d'au moins 30 secondes. » **[à valider]** (blocage d'enregistrement, voir 4.1).
-- Le message de contrainte de durée et le message de temps par membre se placent sous le champ durée.
+- Pastille capsule, fond `--color-surface-sunken`, texte `--type-callout` `--color-text-secondary`, hauteur 28 px, `tabular-nums`.
+- Libellés : « 0 membre », « 1 membre », « 2 membres »…
+- Maximum 15 : texte `--color-text`, pastille contour `--color-border-control`.
+- `role="status"` et `aria-live="polite"`. L'annonce n'a lieu qu'au changement de valeur.
 
-### 3.7 Liste de membres avec ligne de suppression
+### 4.11 Carte d'équipe (écran c)
 
-- Conteneur : carte `--color-surface`, rayon 16 px, ombre `--shadow-card`, `<ol>` pour garder l'ordre de saisie.
-- Ligne : hauteur minimale 52 px, séparateur 1 px `--color-border` entre lignes, padding 12 px 8 px 12 px 16 px.
-- Contenu de ligne : numéro d'ordre (`--type-caption`, `--color-text-secondary`, `tabular-nums`, largeur fixe 24 px), prénom (`--type-body`, `--color-text`), bouton icône « Supprimer » à droite (corbeille ou croix SVG, pas de texte visible sur mobile ; texte visible sur desktop si la place le permet).
-- Repos, survol de la ligne : fond `#F9F9FB` (très léger).
-- Focus clavier : sur le bouton icône de la ligne (`--shadow-focus`).
-- État vide : pas de liste ; un texte « Aucun membre pour l'instant. » en `--color-text-secondary` remplace la liste.
-- Ajout : la nouvelle ligne apparaît en fin de liste, fondu de 180 ms.
-- Suppression : la ligne se referme en hauteur (160 ms) puis disparaît. Les numéros suivants se recalculent. Le focus passe sur le bouton « Supprimer » de la ligne suivante, ou, s'il n'y en a pas, sur le champ « Prénom ». Le focus ne se perd jamais dans le vide.
-- Membres supprimés avant enregistrement : aucun appel, aucune sauvegarde.
-- Lecture par lecteur d'écran : la liste est une `<ol>` ; l'ajout et la suppression sont annoncés par la zone de compteur (3.8), pas par la liste.
+Il n'y a pas de carte à proprement parler : la présentation est un groupe blanc (style réglages), comme le reste des listes. Contenu dans l'ordre : nom d'équipe (`<h1>`), ligne de métadonnées (« 4 membres » en `--type-callout` `--color-text-secondary`), séparateur, liste des membres en lecture seule (4.9 sans action, numéros d'ordre visibles).
 
-### 3.8 Compteur de membres
+### 4.12 Chronomètre grand format (écran e)
 
-- Forme : pastille capsule, fond `--color-surface-muted`, texte `--type-callout` `--color-text-secondary`, 32 px de haut, `tabular-nums`.
-- Libellés : « 0 membre », « 1 membre », « 2 membres »… (accord en « membre » / « membres »).
-- État de maximum (15) : texte `--color-text`, pastille contour `--color-border-control` ; le message « Une équipe ne peut pas dépasser 15 membres. » apparaît sous le champ « Prénom ».
-- État vide (0) : le texte d'aide « Ajoutez au moins 2 membres pour continuer. » s'affiche sous la liste.
-- Accessibilité : `role="status"` et `aria-live="polite"`. L'annonce ne se produit qu'au changement de valeur, jamais à l'ouverture de l'écran.
+- Décompte : `--type-timer`, poids 300, `tabular-nums`, couleur `--color-text`, centré.
+- Élément : `<p role="timer" aria-label="Temps restant pour Thomas">`. `aria-live` reste `off`. Les seules annonces sont : démarrage, dépassement (« Temps dépassé », une seule fois) et arrêt, dans une zone `role="status"` masquée visuellement.
+- Prénom du membre courant au-dessus du décompte, `--type-title-2`, `--color-text`.
+- Temps prévu sous le décompte : « Temps prévu : 2:00 », `--type-body`, `--color-text-secondary`.
+- En dépassement : décompte `--color-overrun`, libellé « Temps dépassé » au-dessus (`--type-title-2`, `--color-overrun`), « +mm:ss » sous le décompte (`--type-title-2`). La transition de couleur dure 240 ms.
+- Mise à jour : au moins une fois par seconde, calculée sur l'horloge système (`Date.now()`), jamais sur un simple compteur d'intervalles, pour éviter la dérive.
+- Après la durée [à valider] : le décompte continue et passe en « +mm:ss ».
 
-### 3.9 Carte d'équipe (écran 2)
+### 4.13 Dialogue de confirmation d'arrêt [à valider]
 
-- Conteneur `<section aria-labelledby="titre-equipe">` : fond `--color-surface`, rayon 16 px, ombre `--shadow-card`, padding 32 px (mobile) ou 48 px (desktop).
-- Contenu dans l'ordre : nom d'équipe (`--type-title-1`), ligne de métadonnées (durée prévue « 15 min », nombre de membres) en `--type-callout` `--color-text-secondary`, séparateur, liste des membres (3.7 en lecture seule, sans bouton de suppression).
-- Pas de bouton dans la carte. Les actions sont sous la carte.
-- Liste en lecture seule : même hauteur de ligne, pas d'effet de survol.
+- Déclenché par « Arrêter la Daily ». Recommandé : confirmation, car l'arrêt interrompt la réunion.
+- Forme : carte `--color-surface`, `--radius-group`, `--shadow-raised`, largeur 320 px (maximum 360), centrée, voile `--color-scrim`.
+- Titre `--type-title-2` : « Arrêter la Daily ? ». Texte `--type-body` : « Le chronomètre s'arrêtera. Aucune Daily ne sera enregistrée. »
+- Boutons côte à côte, pleine largeur chacun : « Continuer » (bouton principal, à droite) et « Arrêter » (secondaire, texte `--color-error`, à gauche). En dessous de 340 px : empilés, « Continuer » en premier.
+- `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`. Focus initial sur « Continuer ». Tab circule entre les deux boutons. Échap = « Continuer ». À la fermeture, le focus revient sur « Arrêter la Daily ».
+- Apparition : voile en fondu 160 ms ; carte en `scale(0.96)` vers 1 et fondu, 240 ms `--ease-drawer`. Disparition plus rapide (160 ms).
+- Ce dialogue est centré : il n'est pas ancré à son bouton, donc pas de `transform-origin` sur le bouton (règle emil : les modales restent centrées).
 
-### 3.10 Chronomètre (écran 3)
+### 4.14 Bandeau
 
-- Décompte : `--type-timer`, poids 300, `font-variant-numeric: tabular-nums`, couleur `--color-text`, centré.
-- Élément : `<p role="timer" aria-label="Temps restant">`. `aria-live` reste « off » : une annonce par seconde serait illisible. Les seules annonces vocales sont : le démarrage, le dépassement (« Temps dépassé ») et l'arrêt, via une zone `role="status"` masquée visuellement.
-- Libellé de durée prévue sous le décompte : « sur 15 min » en `--type-body` `--color-text-secondary`.
-- En cours : décompte `--color-text`.
-- Dépassement : décompte `--color-overrun`, transition de couleur 300 ms ; libellé « Temps dépassé » au-dessus du décompte, `--type-title-2`, `--color-overrun` ; sous le décompte, « +mm:ss » en `--type-title-2`, `--color-overrun`. Le signe « + » et le libellé textuel rendent l'info lisible sans couleur.
-- Décompte : mise à jour au moins une fois par seconde, sans saut (utiliser le temps système pour recalculer, pas un simple compteur d'intervalles, pour éviter la dérive).
-- Comportement après la durée **[à valider]** : recommandation : le décompte continue et passe en « +mm:ss ». Le chronomètre ne s'arrête pas seul, car il sert de repère pendant la réunion.
-- Liste compacte des membres : une ligne par membre, `--type-body`, numéro d'ordre à gauche, pas de bouton. Hauteur de ligne 40 px. Sur desktop, la liste est en colonne latérale (voir 4.3).
+- Forme : bloc pleine largeur de la colonne, `--radius-control`, fond `--color-error-bg` (ou `--color-success-bg`), padding 12 px 16 px, icône SVG 20 px, texte `--type-callout` `--color-text`.
+- Pas de bordure latérale colorée.
+- Contenu : une phrase. Un lien d'action est optionnel (« Recréer l'équipe »).
+- Placement : sous le titre d'écran.
+- Accessibilité : `role="alert"` pour une erreur qui suit une action ; `role="status"` pour un succès ou un état.
+- Apparition : fondu et translation de 4 px, 240 ms `--ease-out`.
+- Usages : « Les données de l'équipe sont illisibles. Recréez l'équipe. » [à valider] ; succès « Équipe enregistrée. » (en pied de l'écran c, 3 s).
 
-### 3.11 Dialogue de confirmation d'arrêt **[à valider]**
+### 4.15 Barre d'actions (mobile)
 
-- Déclenché par « Arrêter la Daily ». Recommandation : confirmer, pour éviter l'arrêt accidentel.
-- Forme : carte `--color-surface`, rayon 16 px, `--shadow-raised`, largeur max 360 px, centrée, fond voilé `rgba(29,29,31,0.32)`.
-- Titre `--type-title-2` : « Arrêter la Daily ? ». Texte `--type-body` : « Le chronomètre s'arrêtera. »
-- Boutons : « Arrêter » (secondaire, texte `--color-error`) et « Continuer » (principal, action sûre). Ordre : « Continuer » à gauche (desktop) ou au-dessus (mobile, pleine largeur).
-- `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby` et `aria-describedby`. Le focus arrive sur « Continuer ».
-- Escape = « Continuer ». Le focus est piégé dans le dialogue, et revient sur « Arrêter la Daily » à la fermeture.
-
-### 3.12 Bandeau d'erreur
-
-- Forme : bandeau pleine largeur de la colonne, rayon 12 px, fond `--color-error-bg`, bordure gauche 4 px `--color-error`, icône d'alerte SVG 20 px `--color-error`, texte `--type-callout` `--color-text`.
-- Contenu : message seul, une phrase ; un lien ou bouton d'action est optionnel (« Recréer l'équipe » sur la donnée illisible).
-- Placement : en haut du contenu, sous le titre d'écran.
-- Accessibilité : `role="alert"` pour une erreur qui apparaît après une action ; sinon `role="status"`.
-- Apparition : fondu et translation de 4 px, `--duration-base`.
-- Usage : « Les données de l'équipe sont illisibles. Recréez l'équipe. » **[à valider]**. Le bandeau de succès (`--color-success-bg`, texte `--color-text`, icône check) peut confirmer l'enregistrement.
+- Barre fixe en bas, `--color-material`, `--material-blur`, bord supérieur 1 px `rgba(255,255,255,0.4)` (la lumière qui frappe le matériau), `padding-bottom: env(safe-area-inset-bottom)`.
+- Contient le bouton principal pleine largeur, et le bouton secondaire ou le lien au-dessus ou à côté selon la largeur.
+- Apparaît avec le contenu qu'elle sert : pas d'animation d'entrée au chargement.
+- Le contenu défilant passe sous la barre ; une marge basse de 96 px évite de masquer le dernier élément.
 
 ---
 
-## 4. Les trois écrans
+## 5. Les cinq écrans
 
-### 4.0 Règles de mise en page communes
+### 5.0 Règles communes
 
-- Une action principale par écran, placée à la même position dans le flux.
-- Desktop (à partir de 768 px) : colonne centrée de 560 px, fond `--color-bg`, carte blanche de 48 px de marge interne. Écran 3 : chronomètre centré dans la fenêtre, pas de carte.
-- Mobile (320 à 767 px) : colonne pleine largeur, marge 16 px. Les actions principales sont pleine largeur, dans une barre fixe en bas (3.13).
-- À 320 px : aucun défilement horizontal. Les libellés longs passent à la ligne ; le chronomètre se réduit par le `clamp`.
-- Pas de dégradé de fond : fond `--color-bg` uni.
-- Titre d'écran : `<h1>` en `--type-title-1`, marge haute 32 px desktop et 24 px mobile.
+- Une action principale par écran, placée au même endroit (en bas sur mobile, en bas du contenu sur desktop).
+- Desktop (768 px et plus) : colonne centrée de 560 px sur fond `--color-bg`. Groupes blancs. Pas de carte autour de la colonne.
+- Mobile (320 à 767 px) : colonne pleine largeur, marge 16 px, barre d'actions fixe en bas (4.15).
+- À 320 px : aucun défilement horizontal ; les libellés longs passent à la ligne ; le chronomètre se réduit par le `clamp`.
+- Titre d'écran : `<h1>` en `--type-large-title`. Marge haute 32 px (desktop), 24 px (mobile).
+- Bouton « retour » : lien avec chevron en haut à gauche (`‹ Mes équipes`), pas d'icône de menu.
+- Pas de dégradé de fond, pas de barre latérale, pas de navigation par onglets.
 
-### 4.1 Écran 1 : Créer ou modifier l'équipe
+### 5.1 Écran (a) : Mes équipes
 
-**Ordre des éléments (haut en bas) :**
-1. Titre `<h1>` : « Créer votre équipe » (premier usage) ou « Modifier l'équipe » (modification).
-2. Champ « Nom d'équipe » (texte, obligatoire, 50 caractères max **[à valider]**).
-3. Champ « Durée de la Daily » (numérique, suffixe « min », pré-rempli à 15 **[à valider]**).
-4. Ligne « Membres » : étiquette de section (`--type-caption`), compteur (3.8) à droite.
-5. Champ « Prénom » (texte, 30 caractères max **[à valider]**) avec bouton secondaire « Ajouter » à droite sur desktop, en dessous sur mobile. Entrée valide aussi.
-6. Message de maximum ou d'aide sous le champ « Prénom ».
-7. Liste des membres (3.7), ou texte d'état vide.
-8. Zone d'actions : bouton principal « Enregistrer l'équipe » ; lien « Annuler » (en modification seulement, à gauche du principal sur desktop, au-dessus sur mobile).
-
-**Mise en page desktop :** champs « Nom » et « Durée » sur la même ligne (Durée à 160 px), le bloc « Membres » suit en pleine largeur, zone d'actions alignée à droite.
-
-**Mise en page mobile :** champs empilés pleine largeur, zone d'actions en barre fixe en bas (3.13), liste au-dessus de la barre.
-
-**Bouton « Ajouter » :** bouton secondaire, 52 px de haut. Désactivé si le champ est vide (le message « Saisissez un prénom. » s'affiche seulement après une tentative : ne pas signaler une erreur avant la première action).
-
-**États :**
-- *Vide (aucun membre) :* compteur « 0 membre », texte « Ajoutez au moins 2 membres pour continuer. », bouton « Enregistrer l'équipe » désactivé.
-- *Erreur de champ :* message sous le champ fautif (3.5), bordure d'erreur. À l'enregistrement, le focus va sur le premier champ en erreur, dans l'ordre de l'écran.
-- *Maximum atteint (15) :* champ « Prénom » désactivé avec le message « Une équipe ne peut pas dépasser 15 membres. », bouton « Ajouter » désactivé.
-- *Enregistré :* transition vers l'écran 2 (4.2).
-
-**Bouton « Enregistrer l'équipe » désactivé (S5)** : il est désactivé quand le nom est vide, quand il y a moins de 2 membres ou quand la durée est invalide. Un bouton désactivé reste focalisable au clavier (`aria-disabled="true"`) pour que le message explicatif soit lu. Au clic (ou Entrée) sur ce bouton `aria-disabled`, le focus va sur le premier champ fautif et le message s'affiche.
-
-**Blocage « temps par membre » [à valider] :** si la durée divisée par le nombre de membres est inférieure à 30 secondes, le bouton reste désactivé et le message « La durée divisée par le nombre de membres doit être d'au moins 30 secondes. » s'affiche sous le champ durée.
-
-### 4.2 Écran 2 : Présentation de l'équipe
+**But :** voir les équipes, en ouvrir une ou en créer une.
 
 **Ordre des éléments :**
-1. Titre `<h1>` : nom d'équipe.
-2. Carte d'équipe (3.9) : métadonnées (durée prévue, nombre de membres), liste ordonnée des membres.
-3. Message d'état sous la carte (si moins de 2 membres) : « Ajoutez au moins 2 membres pour démarrer. » ; lié au bouton par `aria-describedby`.
-4. Zone d'actions : bouton principal « Démarrer une Daily » (désactivé si moins de 2 membres) ; bouton secondaire « Modifier l'équipe ».
+1. `<h1>` « Mes équipes ». Sur desktop, le bouton « Nouvelle équipe » est à droite du titre, en bouton principal.
+2. Groupe de liste : une ligne par équipe, triée par ordre alphabétique [à valider]. Chaque ligne : nom d'équipe (`--type-body-strong`), « N membres » (`--type-callout` `--color-text-secondary`), bouton secondaire compact « Ouvrir » à droite (44 px).
+3. Mobile : barre d'actions avec « Nouvelle équipe » (principal pleine largeur).
 
-**Desktop :** carte de 560 px centrée, zone d'actions en ligne, principal à droite, secondaire à gauche.
-**Mobile :** carte pleine largeur, zone d'actions en barre fixe en bas (principal pleine largeur, au-dessus du secondaire ou à côté si la largeur le permet).
+**Desktop :** groupe de 560 px ; lignes de 60 px.
+**Mobile :** groupe pleine largeur ; barre d'actions en bas.
 
-**États :**
-- *Équipe complète :* présentation complète, bouton principal actif.
-- *Équipe incomplète (moins de 2 membres) :* bouton « Démarrer une Daily » désactivé, message « Ajoutez au moins 2 membres pour démarrer. » ; le bouton « Modifier l'équipe » reste actif.
-- *Données illisibles :* retour à l'écran 1 avec le bandeau 3.12 « Les données de l'équipe sont illisibles. Recréez l'équipe. » **[à valider]**.
-- *Aucune équipe :* redirection vers l'écran 1 sans message (brief).
+**Transitions :** « Ouvrir » → écran (c) par glissement vers la gauche. « Nouvelle équipe » → écran (b) par glissement vers la gauche.
 
-**Ordre d'ouverture :** si une équipe est enregistrée, l'écran 2 s'affiche au chargement, sans passer par l'écran 1 (S7).
+**Clavier :** Tab parcourt les boutons « Ouvrir » dans l'ordre de la liste, puis « Nouvelle équipe ». Une ligne n'est pas cliquable en entier : seul « Ouvrir » l'est (lisibilité et clavier).
 
-### 4.3 Écran 3 : Daily (chronomètre)
+### 5.2 Écran (b) : Création et modification d'équipe
+
+**But :** saisir l'équipe une fois, ou la corriger.
 
 **Ordre des éléments :**
-1. Nom d'équipe (`<h1>` discret, `--type-title-2`, `--color-text-secondary`), en haut.
-2. Libellé de dépassement « Temps dépassé » (masqué tant que le décompte est positif, espace réservé pour éviter le saut de mise en page).
-3. Décompte « mm:ss » (3.10), centré, le plus grand élément de l'écran.
-4. Durée prévue : « sur 15 min » ; en dépassement, « +mm:ss » à la place du libellé de durée.
-5. Liste compacte des membres (3.10), ordre de saisie.
-6. Bouton secondaire « Arrêter la Daily » (variante erreur), en bas.
+1. Bouton retour « ‹ Mes équipes » (en modification seulement ; en création, le lien « Annuler » n'apparaît que si une équipe existe [à valider]).
+2. `<h1>` : « Nouvelle équipe » ou « Modifier l'équipe ».
+3. Groupe « Équipe » : champ « Nom d'équipe » (4.6, 50 caractères max).
+4. Libellé de groupe « Membres » (`--type-footnote`, capitales légères) avec compteur (4.10) à droite.
+5. Groupe « Ajouter un membre » : champ « Prénom » (4.6, 30 caractères max) et bouton « Ajouter » (4.4) à droite. Sur mobile, le bouton passe sous le champ, pleine largeur, mais reste un bouton texte. Entrée dans le champ ajoute le membre.
+6. Message d'aide ou de maximum sous le groupe.
+7. Groupe de la liste des membres (4.9 sans action « Passer » ; bouton icône « Supprimer » à droite de chaque ligne) ou texte d'état vide « Aucun membre pour l'instant. ».
+8. Zone d'actions : bouton principal « Enregistrer l'équipe » ; lien « Annuler » à gauche du principal sur desktop, au-dessus sur mobile (en barre d'actions).
 
-**Desktop :** décompte centré dans la fenêtre, liste des membres en colonne fine à droite (240 px), bouton « Arrêter » en bas à gauche.
-**Mobile :** décompte en haut de l'écran, liste en dessous et défilable, bouton « Arrêter » en barre fixe en bas.
+**Desktop :** groupe « Équipe » et groupe « Ajouter » en colonne ; le bouton « Ajouter » est à droite du champ Prénom.
+**Mobile :** champs empilés pleine largeur ; liste au-dessus de la barre d'actions.
 
-**Pas de bouton pause, pas de choix de membre, pas de saisie** (brief).
+**États :**
+- *Vide (aucun membre) :* compteur « 0 membre », texte d'aide « Ajoutez au moins 2 membres pour continuer. », « Enregistrer l'équipe » désactivé.
+- *Ajout d'un membre :* la ligne est ajoutée en fin de liste sans animation si l'ajout vient du clavier (Entrée). Si l'ajout vient d'un clic, la ligne apparaît en fondu de 180 ms. Le champ Prénom se vide et reprend le focus.
+- *Erreur de champ :* message sous le champ (4.6), filet d'erreur. À l'enregistrement, le focus va sur le premier champ en erreur, dans l'ordre de l'écran.
+- *Maximum atteint (15) :* champ Prénom désactivé avec « Une équipe ne peut pas dépasser 15 membres. », bouton « Ajouter » désactivé.
+- *Enregistré :* transition vers l'écran (c) avec le nom et les membres.
+
+**Bouton « Enregistrer l'équipe » désactivé (S5) :** désactivé si le nom est vide ou s'il y a moins de 2 membres. Il reste focalisable (`aria-disabled`). Au clic ou à Entrée sur ce bouton, le focus va sur le premier champ fautif et le message s'affiche.
+
+**Suppression de membre :** la ligne se referme en hauteur (160 ms `--ease-out`), puis disparaît. Les numéros suivants se recalculent. Le focus passe au bouton « Supprimer » de la ligne suivante, sinon au champ Prénom. Le focus ne se perd jamais dans le vide.
+
+**Modification :** lien « Annuler » sans enregistrer ; Échap équivaut à « Annuler » en modification seulement. Enregistrer un changement met à jour l'écran (c) et la liste (a) ; la mise à jour se fait par un fondu de 160 ms, sans glissement.
+
+**Écran de modification : remplacement [à valider].** Confirmation avant écrasement si le nom ou les membres changent de manière importante ; à voir avec le client (brief, question 2).
+
+### 5.3 Écran (c) : Présentation de l'équipe
+
+**But :** vérifier l'équipe et lancer une Daily.
+
+**Ordre des éléments :**
+1. Bouton retour « ‹ Mes équipes ».
+2. `<h1>` : nom de l'équipe.
+3. Groupe présentation (4.11) : nombre de membres, liste ordonnée des membres dans l'ordre de saisie.
+4. Message d'état sous le groupe si moins de 2 membres : « Ajoutez au moins 2 membres pour démarrer. », lié au bouton par `aria-describedby`.
+5. Zone d'actions : bouton principal « Démarrer une Daily » (désactivé si moins de 2 membres) ; bouton secondaire « Modifier l'équipe ».
+
+**Desktop :** groupe de 560 px ; zone d'actions alignée à droite, secondaire à gauche, principal à droite (même ordre DOM que visuel, voir 5.6).
+**Mobile :** barre d'actions : principal pleine largeur, secondaire au-dessus.
+
+**États :**
+- *Équipe complète :* bouton principal actif.
+- *Équipe incomplète :* bouton principal désactivé, message d'état affiché ; « Modifier l'équipe » reste actif.
+- *Données illisibles :* retour à l'écran (b) avec le bandeau 4.14 « Les données de l'équipe sont illisibles. Recréez l'équipe. » [à valider].
+
+**Transitions :** « Démarrer une Daily » → écran (d) par glissement vers la gauche. « Modifier » → écran (b) par glissement vers la gauche. Retour à Mes équipes : glissement vers la droite.
+
+### 5.4 Écran (d) : Préparation de la Daily
+
+**But :** choisir pour cette Daily le temps de parole de chaque membre et l'ordre de passage. Rien n'est enregistré.
+
+**Ordre des éléments :**
+1. Bouton retour « ‹ Présentation » (ou lien « Annuler »).
+2. `<h1>` « Préparer la Daily » ; sous le titre, nom d'équipe en `--type-callout` `--color-text-secondary`.
+3. Libellé de groupe « Temps de parole » (footnote). Groupe : une ligne par membre (4.9 sans action) avec le sélecteur 4.7 à droite. Option « Appliquer à tous » [à valider] au-dessus du groupe.
+4. Libellé de groupe « Ordre de passage ». Contrôle segmenté 4.8 : « Ordre de l'équipe » | « Ordre aléatoire ». Texte d'aide sous le contrôle : « Pour cette Daily seulement. L'ordre de l'équipe ne change pas. ».
+5. Zone d'actions : bouton principal « Commencer la Daily » ; lien « Annuler » (retour à l'écran c, sans rien lancer).
+
+**Desktop :** groupe de 560 px ; zone d'actions alignée à droite.
+**Mobile :** barre d'actions : « Commencer la Daily » pleine largeur, « Annuler » au-dessus.
+
+**États :**
+- *Pré-rempli :* chaque membre à 2 minutes [à valider] ; « Ordre de l'équipe » sélectionné [à valider].
+- *Erreur :* une valeur absente ou hors bornes : sélecteur à contour d'erreur, message sous la ligne du membre (4.7), « Commencer la Daily » désactivé, focus sur le premier membre fautif à la tentative.
+- *Succès :* « Commencer la Daily » → écran (e). Le tirage aléatoire, s'il est choisi, a lieu à ce moment-là.
+
+### 5.5 Écran (e) : Daily (chronomètre)
+
+**But :** suivre le temps du membre courant, passer les membres.
+
+**Ordre des éléments (mobile) :**
+1. En-tête discret : nom d'équipe (`--type-callout` `--color-text-secondary`) et mode d'ordre (« Ordre de l'équipe » ou « Ordre aléatoire »).
+2. Prénom du membre courant (`--type-title-2`).
+3. Libellé « Temps dépassé » (réserve son espace, invisible tant que le décompte est positif).
+4. Décompte `mm:ss` (4.12), le plus grand élément de l'écran.
+5. Temps prévu « Temps prévu : 2:00 », ou « +mm:ss » en dépassement.
+6. Bouton secondaire « Passer ce membre » (membre courant) — hors barre.
+7. Groupe de la liste de passage (4.9), ordre de passage, défilable.
+8. Barre d'actions fixe : principal « Passer au suivant » (ou « Terminer la Daily » au dernier membre [à valider]) ; lien destructif « Arrêter la Daily » sous le principal.
+
+**Desktop :** décompte centré dans la fenêtre. Liste de passage en colonne droite de 260 px, défilable. « Arrêter la Daily » en bas à gauche, secondaire.
 
 **Comportement :**
-- Le chronomètre démarre au clic sur « Démarrer une Daily », avec la durée et les membres configurés. Il ne démarre jamais à l'ouverture ni au rechargement de l'écran 3 (le rechargement renvoie à l'écran 2, voir 6).
-- L'annonce « Daily démarrée, 15 minutes » est lue par la zone masquée `role="status"`.
-- Au dépassement, l'annonce « Temps dépassé » est lue une seule fois.
+- Le chronomètre démarre au clic sur « Commencer la Daily » (écran d). Il ne démarre jamais à l'ouverture de l'écran (e) ni au rechargement.
+- « Passer au suivant » : la parole passe au membre suivant selon l'ordre choisi ; le décompte repart du temps alloué à ce membre ; le membre quitté passe en « fait ».
+- « Passer ce membre » (membre courant) : passage immédiat au suivant avec son temps ; le membre passe en « passé ».
+- « Passer » sur une ligne (membre à venir) [à valider] : le membre passe en « passé », sans temps, et ne revient pas dans la Daily.
+- Le temps non utilisé n'est pas reporté [à valider].
+- Au dernier membre, « Passer au suivant » devient « Terminer la Daily », qui ramène à l'écran (c) [à valider].
+- Le focus arrive sur le titre (prénom) au chargement. Jamais sur « Arrêter la Daily », pour éviter un arrêt accidentel par Entrée.
 
 **États :**
 - *En cours :* décompte `--color-text`.
-- *Dépassement :* décompte et libellé en `--color-overrun`, « +mm:ss », « Temps dépassé ».
-- *Arrêtée :* clic sur « Arrêter la Daily » → dialogue 3.11 **[à valider]** → écran 2 ; le chronomètre s'interrompt, sans effet de bord.
+- *Dépassement :* décompte et libellé en `--color-overrun`, « Temps dépassé », « +mm:ss ». Le décompte continue [à valider].
+- *Arrêtée :* clic sur « Arrêter la Daily » → dialogue 4.13 [à valider] → écran (c) de la même équipe. Aucune Daily n'est enregistrée [à valider].
+- Aucune pause, aucun choix de membre, aucun raccourci clavier global (pas d'Espace qui interromprait le décompte).
 
-### 4.4 Transitions entre écrans
+**Transitions :** arrivée depuis (d) : glissement vers la gauche, 280 ms. Sortie vers (c) : glissement vers la droite. Le changement de membre courant ne fait pas de transition sur le décompte ; seule la mise en évidence de la ligne change (fond en 240 ms `--ease-standard`).
 
-- Changement d'écran : sortie de l'écran courant (opacité 1 → 0, `--duration-fast`, `--ease-exit`), puis entrée du nouvel écran (opacité 0 → 1 et translation de 8 px vers 0, `--duration-base`, `--ease-standard`). Durée totale : environ 390 ms.
-- Entrée au chargement : contenu en fondu et translation de 8 px, `--duration-base`, `--ease-standard`, sans délai.
-- Après changement d'écran, le focus va sur le `<h1>` du nouvel écran (`tabindex="-1"`, sans contour visible), pour que le lecteur d'écran annonce le titre.
-- Dialogue 3.11 : fondu du voile 160 ms, carte en translation de 8 px et fondu, `--duration-base`.
-- Mise à jour de l'équipe enregistrée : pas d'animation de page ; la carte de l'écran 2 se met à jour en fondu de 160 ms.
+### 5.6 Transitions entre écrans et clavier
 
-### 4.5 Comportement au clavier
+**Transitions :**
+- Avance (une étape dans le parcours) : l'écran sortant glisse de 24 px vers la gauche et s'estompe ; l'écran entrant arrive de 24 px depuis la droite, fondu. Durée 280 ms `--ease-drawer`.
+- Retour : le mouvement est inversé (le sortant part vers la droite, l'entrant arrive de la gauche). Le chemin de retour est le même que le chemin d'aller, comme le recommande la cohérence spatiale.
+- Chargement initial : contenu en fondu seul, 240 ms `--ease-out`, sans translation.
+- Interruption : un clic arrière pendant une transition inverse la transition en cours depuis sa position actuelle (les transitions CSS le permettent).
+- Après changement d'écran, le focus va sur le `<h1>` du nouvel écran (`tabindex="-1"`, sans contour visible) pour que l'annonce soit lue.
 
-Ordre de tabulation : celui de l'ordre des éléments (4.1 à 4.3). Aucun `tabindex` positif.
-
-**Écran 1 :**
-- Tab : nom → durée → prénom → bouton « Ajouter » → bouton icône « Supprimer » de chaque ligne (dans l'ordre) → « Annuler » (si modification) → « Enregistrer l'équipe ».
-- Entrée dans le champ « Prénom » : ajoute le membre (équivalent au clic sur « Ajouter »). Le champ se vide et le focus reste dans le champ.
-- Entrée sur le champ « Nom » ou « Durée » : sans effet, sauf à la dernière étape ; ne jamais enregistrer avec Entrée depuis un champ de durée (évite l'enregistrement accidentel) **[à valider]**.
-- Escape : en modification, équivalent d'« Annuler » (retour à l'écran 2, sans enregistrer). En création, sans effet.
-- Suppression au clavier : Entrée ou Espace sur le bouton « Supprimer » ; le focus passe au bouton suivant ou au champ « Prénom » (3.7).
-
-**Écran 2 :** Tab sur « Démarrer une Daily » puis « Modifier l'équipe ». Le DOM place le bouton principal en premier : sur desktop, le secondaire est à gauche visuellement, donc l'ordre visuel et l'ordre de tabulation diffèrent. Pour respecter WCAG 2.4.3, l'ordre DOM doit suivre l'ordre visuel : le secondaire est à gauche dans le DOM aussi, et le principal reçoit le focus après lui.
-
-**Écran 3 :**
-- Au chargement de l'écran 3, le focus va sur le `<h1>` (nom d'équipe) : jamais sur le bouton « Arrêter » pour éviter un arrêt accidentel par Entrée.
-- Tab : « Arrêter la Daily ».
-- Ni raccourci de pause ni raccourci de démarrage. Le chronomètre n'a pas de raccourci clavier global (pas de Espace global qui interromprait le décompte).
-
-**Dialogue 3.11 :** focus initial sur « Continuer », Tab circule entre « Continuer » et « Arrêter » uniquement, Escape = « Continuer ».
-
-**Raccourci global :** aucun.
-
-### 4.6 Réduction des mouvements
-
-Si `prefers-reduced-motion: reduce`, toutes les translations sont supprimées ; les fondus restent limités à 120 ms ou sont instantanés. Le changement de couleur du décompte en dépassement reste, il ne bouge pas.
+**Clavier :**
+- Ordre de tabulation = ordre visuel. Aucun `tabindex` positif.
+- Écran (b) : nom → prénom → « Ajouter » → « Supprimer » de chaque ligne (dans l'ordre) → « Annuler » → « Enregistrer l'équipe ».
+- Entrée dans le champ Prénom : ajoute le membre (sans animation). Entrée sur les autres champs : sans effet (jamais d'enregistrement par Entrée depuis un champ de texte [à valider]).
+- Échap : en modification, équivalent d'« Annuler ». En création, sans effet.
+- Écran (c) : Tab sur « Modifier l'équipe » puis « Démarrer une Daily » ; l'ordre DOM suit l'ordre visuel (secondaire à gauche sur desktop, donc en premier dans le DOM).
+- Écran (e) : Tab sur les boutons « Passer » des lignes, puis « Passer ce membre », « Passer au suivant », « Arrêter la Daily ».
+- Dialogue 4.13 : focus initial sur « Continuer » ; Tab circule entre « Continuer » et « Arrêter » ; Échap = « Continuer ».
 
 ---
 
-## 5. Animations : récapitulatif
+## 6. Ce qui rend cela Apple-like
 
-| Élément | Animation | Durée | Courbe |
-|---|---|---|---|
-| Entrée d'écran | fondu + translation 8 px | 240 ms | `--ease-standard` |
-| Transition entre écrans | sortie fondu, puis entrée fondu + translation 8 px | 150 ms + 240 ms | `--ease-exit` puis `--ease-standard` |
-| Membre ajouté | fondu | 180 ms | `--ease-standard` |
-| Membre supprimé | fermeture en hauteur puis fondu | 160 ms | `--ease-exit` |
-| Erreur de champ | fondu + translation 4 px | 240 ms | `--ease-standard` |
-| Bandeau d'erreur | fondu + translation 4 px | 240 ms | `--ease-standard` |
-| Bouton principal à l'appui | `scale(0.98)` | 120 ms | `--ease-standard` |
-| Survol bouton | changement de fond | 150 ms | `--ease-standard` |
-| Passage en dépassement | changement de couleur du décompte | 300 ms | `--ease-standard` |
-| Dialogue d'arrêt **[à valider]** | voile en fondu, carte en translation 8 px | 240 ms | `--ease-standard` |
+Huit décisions concrètes, vérifiables sur l'écran.
 
-Pas d'animation sur le décompte lui-même (le chiffre change, il ne glisse pas).
+1. **Hiérarchie typographique à trois niveaux.** Titre en `--type-large-title` (34 px, 600, crénage serré), corps à 17 px, métadonnées à 15 px en gris. On vérifie : un seul titre par écran, et le chronomètre est le seul élément au-dessus de 72 px.
+2. **Groupes en lignes séparées, pas en cartes empilées.** Les listes sont des groupes blancs sur fond gris, avec séparateurs retirés de 16 px à gauche, comme les réglages iOS. On vérifie : aucune carte n'est posée dans une autre carte.
+3. **Une seule action pleine par écran.** Le bouton plein `--color-accent` est unique, à la même position. Les autres actions sont texte ou contour. On vérifie : un bouton plein par écran (le dialogue est une exception : son principal est plein).
+4. **Champs identifiés par un filet, pas par une boîte.** Le champ est une ligne de groupe ; le filet passe à 2 px en focus. On vérifie : en focus clavier, le filet et l'anneau sont visibles sans changement de forme.
+5. **Retour à l'appui instantané et continu.** `scale(0.97)` dès `:active`, sans attendre le relâchement ; le retour est plus lent que l'appui. On vérifie : l'appui se voit à 120 ms, le relâchement dure 160 ms.
+6. **Transitions interruptibles, cohérentes dans l'espace.** Glissement horizontal, mêmes chemins à l'aller et au retour, transitions CSS qui repartent de la position courante. On vérifie : un retour rapide pendant une transition ne saute pas.
+7. **Matière pour la barre d'actions.** Barre translucide avec flou et bord lumineux de 1 px : la liste défile dessous. On vérifie : le contenu est visible sous la barre, et la version « transparence réduite » est opaque.
+8. **Chiffres qui ne bougent pas.** Décompte en chiffres tabulaires, sans animation, mis à jour par l'horloge système. On vérifie : aucune largeur de chiffre ne change pendant le décompte.
+
+Autres règles de finition, moins visibles mais citées : aucune animation sur les actions clavier ; une marge de 16 px ; une courbe `ease-out` partout ; aucun `transition: all`.
 
 ---
 
-## 6. Points d'attention pour la validation (rappel)
+## 7. Ce que j'ai retiré de la version 1, et pourquoi
 
-Les choix suivants sont proposés en attendant la validation du client. Ils ne bloquent pas la maquette.
-
-1. Décompte continu après la durée, en rouge : recommandé (4.3).
-2. Confirmation avant arrêt de la Daily : recommandée (3.11).
-3. Rechargement pendant une Daily : recommandé, retour à l'écran 2, le chronomètre n'est jamais relancé seul (4.3). La reprise avec temps écoulé pendant la fermeture reste à arbitrer (brief, question 3).
-4. Remplacement d'une équipe existante : recommandé, confirmation avant écrasement (écran 1, action « Enregistrer » en modification ; le libellé reste « Enregistrer l'équipe »). Question 2 du brief.
-5. Pré-remplissage de la durée à 15 minutes et bornes des champs (noms, prénoms) : valeurs du brief, à valider.
-
----
-
-## 7. Accessibilité : synthèse
-
-- Contrastes : ratio minimal de texte porteur d'information 5.35:1 (WCAG AA 4.5:1 respecté) ; composants d'interface et focus à 3:1 minimum (3.16:1 pour la bordure de champ sur le fond, 3.44:1 sur surface).
-- Cible tactile : 44 x 44 px minimum.
-- Focus visible : anneau 2 px, toujours présent au clavier.
-- Annonces : messages d'erreur liés par `aria-describedby` ; compteur en `role="status"` ; chronomètre sans `aria-live` continu ; bandeau en `role="alert"`.
-- Mouvement réduit : pris en compte (4.6).
-- Pas de couleur seule : chaque erreur ou dépassement a un texte.
+| Retiré | Pourquoi |
+|---|---|
+| Champ « Durée de la Daily » et ses messages (durée, 30 secondes par membre, bornes 1 à 120) | Brief version 2 : la durée n'est plus une propriété de l'équipe. |
+| Composant « Champ numérique (durée) » et suffixe « min » | Plus de champ de durée dans l'équipe. Le temps par membre utilise le sélecteur 4.7. |
+| Carte d'équipe avec « durée prévue 15 min » | Plus de durée d'équipe. |
+| Écran 3 « Chronomètre » démarrant au clic « Démarrer une Daily » | Le démarrage est au clic « Commencer la Daily » (brief, écran e). |
+| Bordure grise complète de champ | Retour client. Remplacée par le filet inférieur (4.6). |
+| Bouton « Ajouter » plein bleu | Retour client. Remplacé par un bouton texte avec icône (4.4). |
+| Bordure latérale de 4 px du bandeau d'erreur | Gabarit visuel ; l'icône et le texte suffisent (4.14). |
+| Translation verticale de 8 px à chaque écran | Remplacée par un glissement horizontal, plus cohérent avec la navigation. |
+| Courbe `ease-in` de sortie | Retarde le premier mouvement (principe ease-out). |
+| `scale(0.98)` à l'appui | Remplacé par `scale(0.97)`. |
+| Couleur `--color-text-disabled` `#6E6E73` sur `#E8E8ED` | Contraste trop faible (4,15:1) pour un texte. Le désactivé utilise le texte secondaire sur `--color-surface-sunken`. |
+| Icône tige flottante, couleur `#0061C2` | Voir section 8. |
 
 ---
 
 ## 8. Icône d'application
 
-Fichier : `C:\Projects\daily-timer-simple\public\icon.svg`.
+Fichier : `C:\Projects\daily-timer-simple\public\icon.svg` (corrigé dans cette version).
 
-- Forme : carré arrondi (rayon 112 sur 512), fond `--color-accent` (`#0061C2`), flat, sans dégradé.
-- Glyphe : chronomètre blanc (couronne, tige, anneau, aiguille, moyeu). Trait de l'anneau 40 unités, soit environ 2.5 px à 32 px ; aiguille 36 unités, soit environ 2.25 px ; couronne 60 x 36 unités.
-- Lisibilité à 32 px : le glyphe reste reconnaissable (anneau, couronne et aiguille sont les trois repères). Le rendu n'a pas été vérifié par rastérisation dans cette session : à contrôler une fois l'icône importée dans le navigateur (`icon.svg` rendu à 32 x 32).
+**Ce qui a changé.**
+- Couleur de fond : `#0061C2` devient `#0066CC`, l'accent de la nouvelle palette.
+- Rayon du carré : 112 devient 114, soit environ 22 % de la taille, proche de l'arrondi des icônes d'application Apple.
+- Tige : elle était séparée de l'anneau par un écart de 10 unités, soit moins d'un pixel à 32 px, ce qui la rendait floue. Elle est maintenant rattachée à la couronne et à l'anneau.
+- Couronne élargie (68 × 40 au lieu de 60 × 36) et anneau de 42 unités au lieu de 40, pour rester lisible à 32 px.
+- Centre de l'horloge remonté de 2 unités : le glyphe est centré verticalement (de y = 50 à y = 463, centre 256).
+
+**Vérification.** Rendu à 256 px et à 32 px avec ImageMagick (`magick`) : les trois repères (couronne, anneau, aiguille) restent distincts à 32 px. Un rendu final dans le navigateur reste à faire une fois l'application installée.
+
+Fond plat, pas de dégradé. Glyphe blanc.
 
 ---
 
-## 9. Résumé des tokens (référence)
+## 9. Skills appliquées
+
+**impeccable (critique et direction).**
+- Interdits de la section 1 appliqués : pas de champs HTML bruts, pas de tableau de bord, pas de dégradé, pas d'emoji, pas de bordure latérale colorée (4.14).
+- Un seul accent, une seule action pleine par écran (4.1, 6.3).
+- Texte d'aide et d'erreur sous chaque champ, lié par `aria-describedby` (4.6).
+- Icônes SVG monochromes cohérentes (trait 2 px).
+
+**emil-design-eng (détails et mouvement).**
+- Aucune animation sur les actions au clavier (5.2, 5.6).
+- `transition` par propriété, jamais `transition: all`, jamais de `scale(0)`, durées sous 300 ms (3.6).
+- Courbes `ease-out` personnalisées ; retrait du `ease-in` de sortie (changelog 10).
+- Survol gardé derrière `@media (hover: hover) and (pointer: fine)` (4).
+- Dialogue centré, sans `transform-origin` sur le bouton déclencheur (4.13).
+- Bouton `scale(0.97)` à l'appui, retour plus lent que l'appui (4.1).
+
+**apple-design (référence Apple).**
+- Réponse instantanée à l'appui, sans attendre le relâchement (4.1, 6.5).
+- Transitions interruptibles qui partent de la position courante, et chemins symétriques (5.6, 6.6).
+- Matière translucide pour la barre d'actions, avec repli opaque (3.5, 4.15, 6.7).
+- Taille, crénage et interlignage variables selon la taille de texte (3.2).
+- Réduction des mouvements : voir 10.
+
+---
+
+## 10. Réduction des mouvements et transparence
+
+- `prefers-reduced-motion: reduce` : aucun glissement ni translation. Les écrans changent par fondu de 120 ms. Le dialogue apparaît par fondu. Le changement de couleur du dépassement reste (il n'est pas un mouvement).
+- `prefers-reduced-transparency: reduce` : la barre d'actions devient `--color-surface` opaque, sans flou.
+- `prefers-contrast: more` : les filets de champ passent à `--color-text`, le séparateur à `--color-border-control`.
 
 ```css
 :root {
   --color-bg: #F5F5F7;
   --color-surface: #FFFFFF;
-  --color-surface-muted: #E8E8ED;
+  --color-surface-sunken: #EBEBF0;
+  --color-surface-pressed: #DCDCE1;
   --color-text: #1D1D1F;
-  --color-text-secondary: #5C5C62;
-  --color-text-disabled: #6E6E73;
-  --color-accent: #0061C2;
-  --color-accent-hover: #00509E;
-  --color-accent-pressed: #004A8F;
-  --color-success: #17692D;
+  --color-text-secondary: #6E6E73;
+  --color-accent: #0066CC;
+  --color-accent-hover: #0058B3;
+  --color-accent-pressed: #004C99;
+  --color-success: #1E7A3A;
   --color-success-bg: #E6F4EA;
-  --color-error: #B3261E;
+  --color-error: #C4271C;
   --color-error-bg: #FBE9E7;
-  --color-overrun: #9E1C16;
-  --color-border: #C7C7CC;
-  --color-border-control: #8A8A8F;
-  --color-focus: #0061C2;
+  --color-overrun: #B3261E;
+  --color-border-control: #808086;
+  --color-separator: #D2D2D7;
+  --color-focus: #0066CC;
+  --color-scrim: rgba(29, 29, 31, 0.32);
+  --color-material: rgba(255, 255, 255, 0.72);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-press: 120ms;
+  --duration-hover: 150ms;
+  --duration-fast: 180ms;
+  --duration-base: 240ms;
+  --duration-screen: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-screen: 120ms; }
+  .screen-enter, .screen-exit { transform: none !important; }
 }
 ```
 
-Pour l'appui des boutons secondaires et icônes, `#D8D8DE` est une teinte intermédiaire (non tokenisée dans la liste ci-dessus) ; le texte y est `--color-accent-pressed` (6.23:1) ou `--color-text` (11.86:1).
+---
+
+## 11. Points à valider par le client
+
+1. **Démarrage du chronomètre** au clic « Commencer la Daily » (écran d), et non à « Démarrer une Daily ». Libellé « Commencer la Daily » confirmé ?
+2. **Sélecteur de temps** : liste déroulante native (brief) plutôt que stepper. Valeurs 1 à 5 min, défaut 2 min.
+3. **« Appliquer à tous »** pour le temps de parole.
+4. **Passer un membre à venir** (action « Passer » sur chaque ligne) en plus de « Passer ce membre » pour celui qui parle.
+5. **Décompte après la durée** : il continue en « +mm:ss ».
+6. **Fin de liste** : « Terminer la Daily » ramène à l'écran (c).
+7. **Dialogue d'arrêt** : confirmation avant arrêt, aucune Daily enregistrée.
+8. **Rechargement pendant une Daily** : retour à l'écran (c), le chronomètre n'est jamais relancé seul (question 5 du brief).
+9. **Remplacement d'une équipe** lors d'une modification : confirmation à prévoir (question 2 du brief).
+10. **Ordre de passage** : « Ordre de l'équipe » par défaut, tirage au démarrage, ordre fixe pendant la Daily.
+11. **Tri alphabétique** de Mes équipes.
+12. **Bouton « Annuler » en création** : présent seulement si une équipe existe.
+13. **Pas de suppression d'équipe** dans cette version (hors périmètre, question 7 du brief).
