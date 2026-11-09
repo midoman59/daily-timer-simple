@@ -12,11 +12,15 @@ describe('TeamStore (S7 : retrouver l\'équipe au rechargement)', () => {
     expect(new TeamStore().team()).toEqual(team);
   });
 
-  it('ne fait aucun appel réseau : seul le stockage local est utilisé', () => {
+  it('n\'envoie aucune donnée hors de l\'appareil : ni fetch, ni XMLHttpRequest, ni sendBeacon', () => {
     const fetchSpy = spyOn(window, 'fetch');
+    const xhrSpy = spyOn(XMLHttpRequest.prototype, 'open');
+    const beaconSpy = spyOn(navigator, 'sendBeacon');
     new TeamStore().save(team);
     expect(new TeamStore().team()).toEqual(team);
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(xhrSpy).not.toHaveBeenCalled();
+    expect(beaconSpy).not.toHaveBeenCalled();
   });
 
   it('part d\'un état vide quand rien n\'est enregistré', () => {

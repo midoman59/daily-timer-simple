@@ -86,6 +86,24 @@ for (const key of ['Tab', 'Shift+Tab']) {
   });
 }
 
+test('aucune requête vers un autre hôte pendant le parcours (données gardées sur l\'appareil)', async ({
+  page,
+  baseURL,
+}) => {
+  const origins = new Set<string>();
+  page.on('request', (request) => origins.add(new URL(request.url()).origin));
+
+  await startDaily(page);
+  await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Arrêter', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Équipe Gamma' })).toBeVisible();
+
+  const local = new URL(baseURL!).origin;
+  expect(origins.has(local)).toBe(true);
+  expect([...origins].filter((origin) => origin !== local)).toEqual([]);
+});
+
 test('320 px : aucun défilement horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto('./#/equipe');
