@@ -177,3 +177,109 @@ test('dialogue d\'arrêt : « Arrêter » à gauche et « Continuer » à droite
   const narrowStop = await dialog.getByRole('button', { name: 'Arrêter', exact: true }).boundingBox();
   expect(narrowContinue!.y).toBeLessThan(narrowStop!.y);
 });
+
+test('320 px : aucun défilement horizontal sur chaque écran, dès l\'arrivée et après le glissement (I4)', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  // Mesure à l'arrivée (glissement en cours) puis une fois l'écran stabilisé.
+  const expectNoOverflow = async (label: string) => {
+    expect(await horizontalOverflow(page), `${label} : à l'arrivée`).toBe(0);
+    await page.waitForTimeout(400);
+    expect(await horizontalOverflow(page), `${label} : stabilisé`).toBe(0);
+  };
+
+  await page.goto('./');
+  await createTeam(page, 'Équipe Kappa', ['Marie-Christine', 'Jean-Baptiste', 'Hortense-Lou']);
+  await expectNoOverflow('présentation');
+
+  await page.getByRole('link', { name: "Modifier l'équipe" }).click();
+  await expect(page.getByRole('heading', { name: "Modifier l'équipe" })).toBeVisible();
+  await expectNoOverflow('modification');
+
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Équipe Kappa' })).toBeVisible();
+  await page.getByRole('link', { name: '‹ Mes équipes' }).click();
+  await expect(page.getByRole('heading', { name: 'Mes équipes' })).toBeVisible();
+  await expectNoOverflow('Mes équipes');
+
+  await page.getByRole('link', { name: 'Nouvelle équipe' }).click();
+  await expect(page.getByRole('heading', { name: 'Nouvelle équipe' })).toBeVisible();
+  await expectNoOverflow('création');
+
+  await page.goBack();
+  await page.getByRole('link', { name: 'Équipe Kappa' }).click();
+  await expect(page.getByRole('heading', { name: 'Équipe Kappa' })).toBeVisible();
+  await page.getByRole('button', { name: 'Démarrer une Daily' }).click();
+  await expect(page.getByRole('heading', { name: 'Préparer la Daily' })).toBeVisible();
+  await expectNoOverflow('préparation');
+
+  await page.getByRole('button', { name: 'Commencer la Daily' }).click();
+  await expect(page.getByRole('timer')).toBeVisible();
+  await expectNoOverflow('Daily');
+
+  await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await expectNoOverflow('dialogue d\'arrêt');
+});
+
+test('migration v1 : l\'équipe de l\'ancienne version reste utilisable, sa durée est ignorée (I4)', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'daily-timer-simple.team.v1',
+      JSON.stringify({ version: 1, name: 'Équipe Ancienne', durationMinutes: 15, members: ['Léa', 'Tom'] }),
+    ),
+  );
+  // Nouvelle navigation vers l'accueil : la lecture du stockage (et la migration) se fait au démarrage.
+  await page.goto('./');
+  await expect(page).toHaveURL(/#\/equipes$/);
+  await expect(page.getByText('Équipe Ancienne')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('daily-timer-simple.team.v1'))).toBeNull();
+
+  await page.getByRole('link', { name: 'Équipe Ancienne' }).click();
+  await page.getByRole('button', { name: 'Démarrer une Daily' }).click();
+  await page.getByRole('button', { name: 'Commencer la Daily' }).click();
+  await expect(page.getByRole('timer')).toHaveText(/^0[12]:\d\d$/);
+});
+
+test('dépassement : le décompte continue en « +mm:ss », « Temps dépassé » en rouge', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('./');
+  await createTeam(page, 'Équipe Lambda', ['Léa', 'Tom']);
+  await startDaily(page);
+  // Le membre qui parle a deux minutes : au-delà, le décompte passe en dépassement.
+  await page.clock.runFor(2 * 60 * 1000 + 3000);
+  await expect(page.locator('.overrun-title')).toHaveText('Temps dépassé');
+  await expect(page.getByText(/^\+00:0[23]$/)).toBeVisible();
+  await expect(page.getByRole('timer')).toHaveText('00:00');
+  // Couleur du token --color-overrun (design 2.2) : la transition de couleur se termine, l'assertion attend.
+  await expect(page.getByRole('timer')).toHaveCSS('color', 'rgb(179, 38, 30)');
+});
+
+test('suppression au clavier : Entrée sur « Supprimer » retire le membre et le focus reste dans la liste', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await createTeam(page, 'Équipe Mu', ['Léa', 'Tom', 'Ana']);
+  await page.getByRole('link', { name: "Modifier l'équipe" }).click();
+  await expect(page.getByRole('heading', { name: "Modifier l'équipe" })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Supprimer Tom' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('listitem').filter({ hasText: 'Tom' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Supprimer Ana' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Supprimer Ana' })).toHaveCount(0);
+  await expect(page.getByLabel('Prénom')).toBeFocused();
+});
+
+test('dialogue d\'arrêt : Échap équivaut à « Continuer », la Daily reprend sans être arrêtée (I4)', async ({ page }) => {
+  await page.goto('./');
+  await createTeam(page, 'Équipe Nu', ['Léa', 'Tom']);
+  await startDaily(page);
+  await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.getByRole('timer')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Arrêter la Daily' })).toBeFocused();
+});

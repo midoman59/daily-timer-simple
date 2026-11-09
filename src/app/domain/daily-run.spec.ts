@@ -29,6 +29,22 @@ describe('Daily : ordre de passage (S11, S12)', () => {
     expect(names(run).slice().sort()).toEqual(['Ana', 'Léa', 'Tom']);
   });
 
+  it('le tirage aléatoire donne toujours une permutation de l\'équipe, et change l\'ordre d\'un tirage à l\'autre (I4)', () => {
+    // Générateur pseudo-aléatoire déterministe (Park-Miller) : les tirages sont reproductibles.
+    let seed = 42;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    const orders = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const run = createDailyRun(members, 'random', 0, random);
+      expect(names(run).slice().sort()).toEqual(['Ana', 'Léa', 'Tom']);
+      orders.add(names(run).join('|'));
+    }
+    expect(orders.size).toBeGreaterThan(1);
+  });
+
   it('ne change pas la liste des membres passée en entrée', () => {
     createDailyRun(members, 'random', 0, () => 0);
     expect(members.map((member) => member.name)).toEqual(['Léa', 'Tom', 'Ana']);
