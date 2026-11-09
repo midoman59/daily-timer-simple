@@ -8,3 +8,31 @@
   background: var(--color-destructive-fill);
   filter: brightness(0.95);
 }
+
+/* Apparition (design 6.0) : voile en fondu, carte en scale(0.96) vers 1 et fondu, 240 ms. Pas de keyframes sur les boutons. */
+.scrim {
+  animation: scrim-in 160ms ease-out both;
+}
+
+.dialog {
+  animation: dialog-in 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog {
+    animation: scrim-in 160ms ease-out both;
+  }
+}

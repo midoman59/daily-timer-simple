@@ -1,24 +1,32 @@
-/* Tokens du design v2 (docs/design.md, sections 2, 3 et 10). Thème clair uniquement. */
+/* Tokens du design v3 (docs/design.md, sections 2, 3 et 8). Clair par défaut, sombre selon prefers-color-scheme. */
 :root {
+  color-scheme: light dark;
+
   --color-bg: #f5f5f7;
   --color-surface: #ffffff;
   --color-surface-sunken: #ebebf0;
   --color-surface-pressed: #dcdce1;
   --color-text: #1d1d1f;
-  --color-text-secondary: #6e6e73;
+  --color-text-secondary: #5e5e63;
   --color-accent: #0066cc;
   --color-accent-hover: #0058b3;
   --color-accent-pressed: #004c99;
+  --color-on-fill: #ffffff;
   --color-success: #1e7a3a;
   --color-success-bg: #e6f4ea;
   --color-error: #c4271c;
   --color-error-bg: #fbe9e7;
+  --color-destructive-fill: #c4271c;
   --color-overrun: #b3261e;
   --color-border-control: #808086;
   --color-separator: #d2d2d7;
   --color-focus: #0066cc;
   --color-scrim: rgba(29, 29, 31, 0.32);
   --color-material: rgba(255, 255, 255, 0.72);
+  --material-edge: rgba(255, 255, 255, 0.4);
+
+  /* Espace entre le bouton « Nouvelle équipe » et la liste (D48). */
+  --space-cta-to-list: 16px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -37,6 +45,43 @@
   --shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.16);
   --shadow-focus: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
   --material-blur: blur(20px) saturate(180%);
+}
+
+/* Palette sombre (design v3, 2.2) : pas de noir pur, accents désaturés, relief par la luminosité. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #1c1c1e;
+    --color-surface: #2c2c2e;
+    --color-surface-sunken: #3a3a3c;
+    --color-surface-pressed: #48484a;
+    --color-text: #f5f5f7;
+    --color-text-secondary: #aeaeb2;
+    --color-accent: #64b5ff;
+    --color-accent-hover: #7ec2ff;
+    --color-accent-pressed: #8acbff;
+    --color-on-fill: #1c1c1e;
+    --color-success: #7bd88f;
+    --color-success-bg: #1e3323;
+    --color-error: #ff8a80;
+    --color-error-bg: #3d2421;
+    --color-destructive-fill: #ff8a80;
+    --color-overrun: #ff8a80;
+    --color-border-control: #8e8e93;
+    --color-separator: #3a3a3c;
+    --color-focus: #64b5ff;
+    --color-scrim: rgba(28, 28, 30, 0.6);
+    --color-material: rgba(44, 44, 46, 0.72);
+    --material-edge: rgba(255, 255, 255, 0.08);
+
+    --shadow-group: none;
+    --shadow-raised: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 16px 40px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-border-control: var(--color-text-secondary);
+  }
 }
 
 *,
@@ -183,7 +228,7 @@ p {
   padding: 8px 16px 0;
 }
 
-/* Libellé de groupe : petites capitales légères, au-dessus d'un groupe. */
+/* Libellé de groupe : casse de phrase, sans capitales (une capitale ne doit pas imiter un prénom, design 7). */
 .section-head {
   display: flex;
   align-items: center;
@@ -196,10 +241,25 @@ p {
 .section-label {
   font-size: 13px;
   line-height: 18px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--color-text-secondary);
+}
+
+/* Bouton « Nouvelle équipe » dans le flux, suivi d'un espace de 16 px avant la liste (D48, S20). */
+.create-button {
+  margin-block-end: var(--space-cta-to-list);
+}
+
+/* Bandeau de pause : information, sans couleur d'erreur ni de succès. */
+.banner-pause {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+  border-radius: var(--radius-control);
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 20px;
+  margin-bottom: 16px;
 }
 
 .counter {
