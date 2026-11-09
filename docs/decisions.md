@@ -69,3 +69,10 @@ Ce fichier consigne les choix pris par Amelia sur les règles marquées **[à va
 | D63 | Supprimer la dernière équipe | Après suppression, l'application affiche (b) (brief S21) | Brief v3 S21 |
 | D64 | Icône d'application | Une seule icône pour les deux thèmes (design section 9) | Design 9 et 10.8 |
 | D65 | « Passer ce membre » au dernier membre qui parle | « Passer ce membre » est proposé au membre qui parle, dernier compris, comme aux autres membres qui parlent. Un absent en dernier est compté « passé » au bilan, sans temps. Une fois la liste épuisée, « Terminer la Daily » devient l'action principale. Remplace D57 : le masquage venait du design 5.5.1, qui contredit la décision client 11 et le brief v3 (section 3.5) | Décision client 11, brief v3 section 3.5 (ligne 257) ; revue 6, I3 |
+
+## D66 : Deux onglets, une seule Daily (choix assumé pour la version 3, à traiter en version suivante)
+
+- **Décision :** pas de confirmation avant de remplacer une Daily en cours, même si elle a été lancée depuis un autre onglet du même navigateur. La progression de la Daily remplacée est perdue.
+- **Raison :** choix du client, pour cette version. Le cas reste rare dans un usage normal (une seule Daily à la fois).
+- **À traiter en version suivante :** demander une confirmation avant de remplacer une Daily en cours (recommandé), ou partager l'état entre onglets.
+- **Constats liés :** revue 7, IM-1 ; m-2 (Daily orpheline par URL après suppression de son équipe).
