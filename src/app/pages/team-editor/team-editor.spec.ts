@@ -96,3 +96,51 @@ describe('TeamEditor (S2 : ajouter des membres par prénom)', () => {
     expect(el.textContent).toContain('Saisissez un prénom.');
   });
 });
+
+describe('TeamEditor (S3 : compteur de membres)', () => {
+  let fixture: ComponentFixture<TeamEditor>;
+  let el: HTMLElement;
+
+  function addName(name: string): void {
+    const input = el.querySelector<HTMLInputElement>('#member-name')!;
+    input.value = name;
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ imports: [TeamEditor], providers: [provideRouter([])] });
+    fixture = TestBed.createComponent(TeamEditor);
+    fixture.detectChanges();
+    el = fixture.nativeElement as HTMLElement;
+  });
+
+  function counter(): HTMLElement {
+    return el.querySelector<HTMLElement>('.counter')!;
+  }
+
+  it('affiche « 0 membre » puis se met à jour à chaque ajout', () => {
+    expect(counter().textContent?.trim()).toBe('0 membre');
+    addName('Léa');
+    expect(counter().textContent?.trim()).toBe('1 membre');
+    addName('Tom');
+    expect(counter().textContent?.trim()).toBe('2 membres');
+  });
+
+  it('annonce le compteur aux lecteurs d\'écran', () => {
+    expect(counter().getAttribute('role')).toBe('status');
+    expect(counter().getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('désactive le champ au 15e membre avec le message de maximum', () => {
+    for (let i = 1; i <= 15; i++) {
+      addName(`Membre${String.fromCharCode(64 + i)}`);
+    }
+    const input = el.querySelector<HTMLInputElement>('#member-name')!;
+    expect(counter().textContent?.trim()).toBe('15 membres');
+    expect(input.disabled).toBeTrue();
+    expect(el.textContent).toContain('Une équipe ne peut pas dépasser 15 membres.');
+  });
+});

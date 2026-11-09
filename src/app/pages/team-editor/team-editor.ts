@@ -1,7 +1,8 @@
-import { Component, ElementRef, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, signal, viewChild } from '@angular/core';
 import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
 import {
   DEFAULT_DURATION_MINUTES,
+  MAX_MEMBERS,
   normalizeSpaces,
   validateDuration,
   validateMemberName,
@@ -25,6 +26,14 @@ function fromDomain(check: (value: string) => string | null) {
 export class TeamEditor {
   /** Membres saisis, dans l'ordre de saisie. */
   protected readonly members = signal<string[]>([]);
+
+  /** Libellé du compteur : « 0 membre », « 1 membre », « 2 membres »… */
+  protected readonly countLabel = computed(() => {
+    const count = this.members().length;
+    return count <= 1 ? `${count} membre` : `${count} membres`;
+  });
+
+  protected readonly isFull = computed(() => this.members().length >= MAX_MEMBERS);
 
   /** Vrai après une tentative d'ajout : l'erreur du prénom ne s'affiche qu'à partir de là. */
   protected readonly memberAttempted = signal(false);
@@ -56,6 +65,9 @@ export class TeamEditor {
 
   /** Message du prénom : affiché seulement après une tentative d'ajout. */
   protected memberError(): string | null {
+    if (this.isFull()) {
+      return 'Une équipe ne peut pas dépasser ' + MAX_MEMBERS + ' membres.';
+    }
     if (!this.memberAttempted() || this.memberName.valid) {
       return null;
     }
@@ -70,10 +82,20 @@ export class TeamEditor {
       return;
     }
     this.members.update((list) => [...list, normalizeSpaces(this.memberName.value)]);
+    this.syncMemberInput();
     this.memberName.setValue('');
     this.memberName.markAsUntouched();
     this.memberAttempted.set(false);
     this.memberField().nativeElement.focus();
+  }
+
+  /** Désactive la saisie d'un prénom quand l'équipe est pleine. */
+  private syncMemberInput(): void {
+    if (this.isFull()) {
+      this.memberName.disable({ emitEvent: false });
+    } else {
+      this.memberName.enable({ emitEvent: false });
+    }
   }
 
   protected onMemberEnter(event: Event): void {

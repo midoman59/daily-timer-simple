@@ -39,7 +39,10 @@
     </div>
 
     <section class="field" aria-labelledby="members-heading">
-      <h2 id="members-heading" class="section-label">Membres</h2>
+      <div class="members-head">
+        <h2 id="members-heading" class="section-label">Membres</h2>
+        <span class="counter" role="status" aria-live="polite">{{ countLabel() }}</span>
+      </div>
 
       <div class="add-row">
         <div class="add-field">
@@ -59,7 +62,7 @@
             <p id="member-name-error" class="field-error">{{ message }}</p>
           }
         </div>
-        <button type="button" class="btn btn-secondary" (click)="addMember()">Ajouter</button>
+        <button type="button" class="btn btn-secondary" [disabled]="isFull()" (click)="addMember()">Ajouter</button>
       </div>
 
       <ol class="member-list">
@@ -70,6 +73,9 @@
           </li>
         }
       </ol>
+      @if (members().length < 2) {
+        <p class="help">Ajoutez au moins 2 membres pour continuer.</p>
+      }
     </section>
   </div>
 </main>

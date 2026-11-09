@@ -2,6 +2,8 @@ export const DEFAULT_DURATION_MINUTES = 15;
 export const MIN_DURATION_MINUTES = 1;
 export const MAX_DURATION_MINUTES = 120;
 export const TEAM_NAME_MAX_LENGTH = 50;
+export const MIN_MEMBERS = 2;
+export const MAX_MEMBERS = 15;
 
 /** Retire les espaces en début et fin, réduit les espaces multiples à un seul. */
 export function normalizeSpaces(value: string): string {

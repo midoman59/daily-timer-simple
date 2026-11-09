@@ -82,6 +82,32 @@
   color: var(--color-error);
 }
 
+.members-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.counter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.help {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
 .section-label {
   margin: 0;
   font-size: 13px;
