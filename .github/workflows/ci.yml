@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Appelé par deploy-pages.yml : le déploiement ne part qu'après ces tests.
+  workflow_call:
 
 jobs:
   test-and-build:
