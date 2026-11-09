@@ -81,11 +81,12 @@ export class Daily implements OnDestroy {
 
   /**
    * Focus hors du dialogue pendant la confirmation (clic sur le voile, focus sur BODY) : Tab et Maj+Tab
-   * ramènent le focus dans le dialogue, au lieu de laisser le navigateur atteindre le fond.
+   * ramènent le focus dans le dialogue, au lieu de laisser le navigateur atteindre le fond. Échap ferme
+   * aussi la confirmation (= Continuer), même sans focus dans le dialogue.
    */
   @HostListener('document:keydown', ['$event'])
   protected onDocumentKeydown(event: KeyboardEvent): void {
-    if (!this.confirming() || event.key !== 'Tab') {
+    if (!this.confirming() || (event.key !== 'Tab' && event.key !== 'Escape')) {
       return;
     }
     const first = this.continueButton()?.nativeElement;
@@ -95,7 +96,12 @@ export class Daily implements OnDestroy {
     }
     const dialog = first.closest('[role="alertdialog"]');
     if (dialog?.contains(document.activeElement)) {
-      return; // Déjà dans le dialogue : onDialogKeydown gère le piège.
+      return; // Déjà dans le dialogue : onDialogKeydown gère le piège et Échap.
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.continueDaily();
+      return;
     }
     event.preventDefault();
     (event.shiftKey ? last : first).focus();

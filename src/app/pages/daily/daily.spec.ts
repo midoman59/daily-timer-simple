@@ -96,6 +96,18 @@ describe('Daily (S9 : écran de la Daily)', () => {
     expect(timer.session()).not.toBeNull();
   });
 
+  it('Échap ferme la confirmation même quand le focus est sur BODY (clic sur le voile)', () => {
+    button('Arrêter la Daily')!.click();
+    fixture.detectChanges();
+    (document.activeElement as HTMLElement).blur();
+    expect(document.activeElement).toBe(document.body);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(timer.session()).not.toBeNull();
+  });
+
   it('rend le fond inerte pendant la confirmation : le focus ne peut pas revenir derrière le dialogue', () => {
     const main = el.querySelector<HTMLElement>('main')!;
     expect(main.inert).toBeFalse();
