@@ -40,7 +40,7 @@ test('parcours complet : Mes équipes, création, présentation, préparation, d
   await page.getByRole('button', { name: 'Passer Tom' }).click();
   await expect(page.getByRole('listitem').filter({ hasText: 'Tom' })).toContainText('passé');
   // Léa parle, puis la parole passe à Ana, qui est la dernière personne : le bouton devient « Terminer la Daily ».
-  await page.getByRole('button', { name: 'Passer au suivant' }).click();
+  await page.getByRole('button', { name: 'Suivant' }).click();
   await expect(page.getByRole('timer')).toHaveAccessibleName('Temps restant pour Ana');
   await expect(page.getByRole('button', { name: 'Terminer la Daily' })).toBeVisible();
 
@@ -54,14 +54,18 @@ test('parcours complet : Mes équipes, création, présentation, préparation, d
   await expect(page.getByText('3 membres')).toBeVisible();
 });
 
-test('rechargement : l\'équipe est retrouvée, la Daily ne redémarre pas seule', async ({ page }) => {
+test('rechargement : la Daily reprend figée, rien ne repart sans clic, et les équipes sont retrouvées', async ({ page }) => {
   await page.goto('./');
   await createTeam(page, 'Équipe Beta', ['Léa', 'Tom']);
   await startDaily(page);
   await page.reload();
-  await expect(page).toHaveURL(/#\/equipe\/[^/]+$/);
-  await expect(page.getByRole('heading', { name: 'Équipe Beta' })).toBeVisible();
-  await expect(page.getByRole('timer')).toHaveCount(0);
+  await expect(page.getByRole('timer')).toBeVisible();
+  await expect(page.getByText('Daily en pause')).toBeVisible();
+  const before = await page.getByRole('timer').textContent();
+  await page.waitForTimeout(1500);
+  expect(await page.getByRole('timer').textContent()).toBe(before);
+  await page.getByRole('button', { name: 'Reprendre la Daily' }).click();
+  await expect(page.getByText('Daily en pause')).toHaveCount(0);
 });
 
 test('accueil : « Mes équipes » quand une équipe existe, et plusieurs équipes retrouvées', async ({ page }) => {
@@ -77,16 +81,21 @@ test('accueil : « Mes équipes » quand une équipe existe, et plusieurs équip
   expect(titles).toEqual(['Équipe Gamma', 'Équipe Zeta']);
 });
 
-test('retour arrière pendant la Daily : la Daily s\'arrête et ne reprend pas seule', async ({ page }) => {
+test('garde de sortie : le retour arrière ouvre « Quitter la Daily ? », « Continuer » reste sur la Daily (S28)', async ({ page }) => {
   await page.goto('./');
   await createTeam(page, 'Équipe Delta', ['Léa', 'Tom']);
   await startDaily(page);
   await page.goBack();
-  await expect(page).toHaveURL(/#\/equipe\/[^/]+\/preparer$/);
-  // Avancer de nouveau ne relance pas la Daily : la garde renvoie à la présentation.
-  await page.goForward();
-  await expect(page).toHaveURL(/#\/equipe\/[^/]+$/);
+  await expect(page.getByRole('alertdialog')).toContainText('Quitter la Daily ?');
+  await expect(page).toHaveURL(/#\/equipe\/[^/]+\/daily$/);
+  await page.getByRole('button', { name: 'Continuer' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/equipe\/[^/]+\/daily$/);
+  await page.goBack();
+  await page.getByRole('button', { name: 'Arrêter', exact: true }).click();
+  // La navigation demandée se poursuit une fois la Daily effacée : le chronomètre n'existe plus.
   await expect(page.getByRole('timer')).toHaveCount(0);
+  await expect(page).not.toHaveURL(/\/daily$/);
 });
 
 for (const key of ['Tab', 'Shift+Tab']) {
@@ -250,7 +259,7 @@ test('dépassement : le décompte continue en « +mm:ss », « Temps dépassé �
   await page.clock.runFor(2 * 60 * 1000 + 3000);
   await expect(page.locator('.overrun-title')).toHaveText('Temps dépassé');
   await expect(page.getByText(/^\+00:0[23]$/)).toBeVisible();
-  await expect(page.getByRole('timer')).toHaveText('00:00');
+  await expect(page.getByRole('timer')).toHaveText(/^\+00:\d\d$/);
   // Couleur du token --color-overrun (design 2.2) : la transition de couleur se termine, l'assertion attend.
   await expect(page.getByRole('timer')).toHaveCSS('color', 'rgb(179, 38, 30)');
 });
@@ -282,4 +291,72 @@ test('dialogue d\'arrêt : Échap équivaut à « Continuer », la Daily reprend
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(page.getByRole('timer')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Arrêter la Daily' })).toBeFocused();
+});
+
+test('parcours v3 : « Terminer la Daily » ouvre le bilan, copie et retour à l\'équipe (S26, S29, S30)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('./');
+  await createTeam(page, 'Équipe Bilan', ['Léa', 'Tom']);
+  await startDaily(page);
+  await page.getByRole('button', { name: 'Suivant' }).click();
+  await expect(page.getByRole('button', { name: 'Terminer la Daily' })).toBeVisible();
+  await page.getByRole('button', { name: 'Terminer la Daily' }).click();
+  await expect(page.getByRole('heading', { name: 'Bilan de la Daily' })).toBeVisible();
+  await expect(page.getByText('Aucun dépassement')).toBeVisible();
+  await page.getByRole('button', { name: 'Copier le bilan' }).click();
+  await expect(page.getByText('Bilan copié.')).toBeVisible();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied.split('\n')[0]).toMatch(/^Daily : Équipe Bilan, /);
+  expect(copied).toContain('Léa : ');
+  await page.getByRole('button', { name: "Retour à l'équipe" }).click();
+  await expect(page).toHaveURL(/#\/equipe\/[^/]+$/);
+  await expect(page.getByRole('heading', { name: 'Équipe Bilan' })).toBeVisible();
+});
+
+test('dépassement reste négatif jusqu\'à « Suivant » (S16)', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('./');
+  await createTeam(page, 'Équipe Nu2', ['Léa', 'Tom']);
+  await startDaily(page);
+  await page.clock.runFor(2 * 60 * 1000 + 30_000);
+  await expect(page.getByText(/^\+00:3\d$/)).toBeVisible();
+  await page.clock.runFor(60_000);
+  await expect(page.getByRole('timer')).toHaveAccessibleName('Temps restant pour Léa');
+  await expect(page.getByText(/^\+01:\d\d$/)).toBeVisible();
+  await page.getByRole('button', { name: 'Suivant' }).click();
+  await expect(page.getByRole('timer')).toHaveAccessibleName('Temps restant pour Tom');
+  await expect(page.getByRole('timer')).toHaveText(/^01:\d\d$/);
+});
+
+test('majuscule : la première lettre de chaque prénom ajouté passe en majuscule (S23)', async ({ page }) => {
+  await page.goto('./');
+  await page.getByLabel("Nom d'équipe").fill('Équipe Maj');
+  await page.getByLabel('Prénom').fill('jean-pierre');
+  await page.getByLabel('Prénom').press('Enter');
+  await page.getByLabel('Prénom').fill('élodie');
+  await page.getByLabel('Prénom').press('Enter');
+  await expect(page.locator('.member-list .row-title').first()).toHaveText('Jean-pierre');
+  await expect(page.locator('.member-list .row-title').nth(1)).toHaveText('Élodie');
+  await page.getByRole('button', { name: "Enregistrer l'équipe" }).click();
+  await expect(page.getByRole('heading', { name: 'Équipe Maj' })).toBeVisible();
+  await expect(page.getByText('Jean-pierre')).toBeVisible();
+});
+
+test('mode sombre : suit prefers-color-scheme sans bouton de bascule (S25)', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('./');
+  await expect(page.getByRole('heading', { name: 'Nouvelle équipe' })).toBeVisible();
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(28, 28, 30)');
+  await page.emulateMedia({ colorScheme: 'light' });
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(245, 245, 247)');
+});
+
+test('suppression d\'équipe depuis Mes équipes, avec confirmation (S21)', async ({ page }) => {
+  await page.goto('./');
+  await createTeam(page, 'Équipe Supp', ['Léa', 'Tom']);
+  await page.getByRole('link', { name: '‹ Mes équipes' }).click();
+  await page.getByRole('button', { name: 'Supprimer Équipe Supp' }).click();
+  await expect(page.getByRole('alertdialog')).toContainText('Cette action est définitive.');
+  await page.getByRole('button', { name: 'Supprimer l\'équipe' }).click();
+  await expect(page.getByRole('heading', { name: 'Nouvelle équipe' })).toBeVisible();
 });
