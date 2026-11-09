@@ -398,7 +398,7 @@ p {
 
 .btn-primary {
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-on-fill);
   min-width: 160px;
 }
 

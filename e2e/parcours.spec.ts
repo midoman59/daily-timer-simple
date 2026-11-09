@@ -1,4 +1,4 @@
-import { type Page, expect, test } from '@playwright/test';
+import { type Locator, type Page, expect, test } from '@playwright/test';
 
 // Parcours sur le build de production, sous /daily-timer-simple/ (base href GitHub Pages).
 
@@ -349,6 +349,33 @@ test('mode sombre : suit prefers-color-scheme sans bouton de bascule (S25)', asy
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(28, 28, 30)');
   await page.emulateMedia({ colorScheme: 'light' });
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(245, 245, 247)');
+});
+
+/** Ratio de contraste WCAG entre le texte et le fond d'un élément, tel que le navigateur le calcule. */
+async function contrastOf(locator: Locator): Promise<number> {
+  return locator.evaluate(async (el) => {
+    await Promise.all(el.getAnimations().map((animation) => animation.finished));
+    const rgb = (value: string) => value.match(/[\d.]+/g)!.slice(0, 3).map(Number);
+    const luminance = ([r, g, b]: number[]) =>
+      [r, g, b]
+        .map((channel) => channel / 255)
+        .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
+    const style = getComputedStyle(el);
+    const a = luminance(rgb(style.color));
+    const b = luminance(rgb(style.backgroundColor));
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  });
+}
+
+test('contraste : le texte du bouton principal atteint 4,5:1 dans les deux thèmes (B1, critère 15)', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('./');
+  await createTeam(page, 'Équipe Contraste', ['Léa', 'Tom']);
+  const primary = page.getByRole('button', { name: 'Démarrer une Daily' });
+  expect(await contrastOf(primary)).toBeGreaterThanOrEqual(4.5);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  expect(await contrastOf(primary)).toBeGreaterThanOrEqual(4.5);
 });
 
 test('suppression d\'équipe depuis Mes équipes, avec confirmation (S21)', async ({ page }) => {
