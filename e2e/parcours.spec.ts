@@ -157,3 +157,23 @@ test('320 px : préparation et Daily sans défilement horizontal, avec des prén
   await expect(page.getByRole('timer')).toBeVisible();
   expect(await horizontalOverflow(page)).toBe(0);
 });
+
+test('dialogue d\'arrêt : « Arrêter » à gauche et « Continuer » à droite ; empilés sous 340 px, « Continuer » en haut (I2)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('./');
+  await createTeam(page, 'Équipe Iota', ['Léa', 'Tom']);
+  await startDaily(page);
+  await page.getByRole('button', { name: 'Arrêter la Daily' }).click();
+  const dialog = page.getByRole('alertdialog');
+  const continueBox = await dialog.getByRole('button', { name: 'Continuer' }).boundingBox();
+  const stopBox = await dialog.getByRole('button', { name: 'Arrêter', exact: true }).boundingBox();
+  expect(stopBox!.x).toBeLessThan(continueBox!.x);
+  expect(Math.abs(stopBox!.y - continueBox!.y)).toBeLessThan(2);
+
+  await page.setViewportSize({ width: 320, height: 640 });
+  const narrowContinue = await dialog.getByRole('button', { name: 'Continuer' }).boundingBox();
+  const narrowStop = await dialog.getByRole('button', { name: 'Arrêter', exact: true }).boundingBox();
+  expect(narrowContinue!.y).toBeLessThan(narrowStop!.y);
+});

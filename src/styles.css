@@ -712,8 +712,13 @@ p {
   margin-bottom: 24px;
 }
 
+/*
+ * « Continuer » vient en premier dans le DOM (ordre du tab et focus initial inchangés). En ligne, il est
+ * affiché à droite, « Arrêter » à gauche (design 4.13). Sous 340 px, empilés : « Continuer » en haut.
+ */
 .dialog-actions {
   display: flex;
+  flex-direction: row-reverse;
   gap: 12px;
 }
 
@@ -724,7 +729,7 @@ p {
 
 @media (max-width: 339px) {
   .dialog-actions {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 }
 
