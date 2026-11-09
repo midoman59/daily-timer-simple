@@ -62,6 +62,17 @@ async function startDaily(page: Page): Promise<void> {
   await expect(page).toHaveURL(/#\/daily$/);
 }
 
+test('retour arrière pendant la Daily : la Daily s\'arrête et ne reprend pas seule', async ({ page }) => {
+  await startDaily(page);
+  await page.goBack();
+  await expect(page).toHaveURL(/#\/presentation$/);
+
+  await page.goForward();
+  await expect(page).toHaveURL(/#\/presentation$/);
+  await expect(page.getByRole('timer')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Démarrer une Daily' })).toBeVisible();
+});
+
 for (const key of ['Tab', 'Shift+Tab']) {
   test(`dialogue d'arrêt : après un clic sur le voile puis ${key}, le focus reste dans le dialogue`, async ({ page }) => {
     await startDaily(page);

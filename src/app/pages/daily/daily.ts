@@ -5,6 +5,7 @@ import {
   afterNextRender,
   computed,
   effect,
+  OnDestroy,
   inject,
   signal,
   viewChild,
@@ -17,7 +18,7 @@ import { DailyTimerService } from '../../services/daily-timer.service';
   templateUrl: './daily.html',
   styleUrl: './daily.css',
 })
-export class Daily {
+export class Daily implements OnDestroy {
   protected readonly timer = inject(DailyTimerService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
@@ -52,6 +53,14 @@ export class Daily {
         this.announcement.set('Temps dépassé');
       }
     });
+  }
+
+  /**
+   * Quitter l'écran sans passer par « Arrêter » (retour arrière, changement de route) arrête la Daily.
+   * Le chronomètre ne continue jamais hors de l'écran, et ne reprend pas seul (décision D28).
+   */
+  ngOnDestroy(): void {
+    this.timer.stop();
   }
 
   protected askStop(): void {

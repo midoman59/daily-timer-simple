@@ -109,6 +109,11 @@ describe('Daily (S9 : écran de la Daily)', () => {
     expect(document.activeElement?.closest('[role="alertdialog"]')).not.toBeNull();
   });
 
+  it('arrête la Daily quand l\'écran est quitté sans « Arrêter » (retour arrière)', () => {
+    fixture.destroy();
+    expect(timer.session()).toBeNull();
+  });
+
   it('rend le fond à nouveau actif après « Continuer »', () => {
     button('Arrêter la Daily')!.click();
     fixture.detectChanges();
