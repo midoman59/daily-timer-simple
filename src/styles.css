@@ -55,3 +55,57 @@ body {
 h1:focus {
   outline: none;
 }
+
+/* Entrée d'écran : fondu et translation de 8 px (design 4.4). */
+.page,
+.daily {
+  animation: screen-in var(--duration-base) var(--ease-standard) both;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Petits écrans : les actions prennent toute la largeur, sans défilement horizontal. */
+@media (max-width: 599px) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions .btn,
+  .actions .btn-link {
+    width: 100%;
+  }
+}
+
+/* Mouvement réduit : pas de translation, animations quasi instantanées. */
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .daily {
+    animation-name: screen-fade;
+    animation-duration: 120ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+  }
+}
+
+@keyframes screen-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

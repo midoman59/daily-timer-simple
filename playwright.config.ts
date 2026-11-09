@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// S-E1-05 : tests E2E. En local, le navigateur installé (Chrome) est utilisé ; en CI, celui de Playwright.
+// Tests E2E sur le build de production (base href /daily-timer-simple/), servi par e2e/serve-dist.mjs.
+// Build préalable : npx ng build --configuration production --base-href "/daily-timer-simple/"
+// En local, le navigateur Chrome installé est utilisé ; en CI, celui de Playwright.
 export default defineConfig({
   testDir: './e2e',
   testMatch: /.*\.spec\.ts/,
@@ -9,14 +11,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: 'http://localhost:4300/daily-timer-simple/',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npx ng serve --port 4200',
-    url: 'http://localhost:4200',
+    command: 'node e2e/serve-dist.mjs',
+    url: 'http://localhost:4300/daily-timer-simple/',
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 60_000,
   },
   projects: [
     {
