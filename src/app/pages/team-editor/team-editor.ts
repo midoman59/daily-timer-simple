@@ -14,12 +14,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   MAX_MEMBERS,
   MIN_MEMBERS,
+  capitalizeFirst,
   memberCountLabel,
   normalizeSpaces,
   validateMemberName,
   validateTeamName,
 } from '../../domain/team-validation';
 import { TeamStore } from '../../services/team.store';
+import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 
 /** Adapte un validateur de domaine (message ou null) au format Angular. */
 function fromDomain(check: (value: string) => string | null) {
@@ -35,7 +37,7 @@ function fromDomain(check: (value: string) => string | null) {
  */
 @Component({
   selector: 'app-team-editor',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, ConfirmDialog],
   templateUrl: './team-editor.html',
   styleUrl: './team-editor.css',
 })
@@ -50,19 +52,23 @@ export class TeamEditor {
   /** Vrai quand l'écran modifie une équipe existante. */
   protected readonly isEdit = this.teamId !== null;
 
+  /** Membres enregistrés avant la modification : ceux qui n'existent plus à l'enregistrement sont retirés. */
+  private readonly savedMembers = this.teamId ? (this.store.find(this.teamId)?.members ?? []) : [];
+
   /** Vrai si une donnée stockée est illisible : l'écran l'indique. */
   protected readonly unreadable = this.store.readError;
 
   /** Vrai si l'équipe n'a pas pu être écrite dans le stockage du navigateur. */
   protected readonly storageError = signal(false);
 
-  /** Vrai s'il existe déjà une équipe : la création peut alors être annulée vers « Mes équipes ». */
-  protected readonly hasTeams = this.store.teams().length > 0;
+  /** Prénoms retirés, en attente de la confirmation du dialogue 6.2, ou null. */
+  protected readonly pendingRemoval = signal<string[] | null>(null);
 
   private readonly title = viewChild<ElementRef<HTMLElement>>('title');
   private readonly nameField = viewChild.required<ElementRef<HTMLInputElement>>('nameField');
   private readonly memberField = viewChild.required<ElementRef<HTMLInputElement>>('memberField');
   private readonly deleteButtons = viewChildren<ElementRef<HTMLButtonElement>>('deleteButton');
+  private readonly saveButton = viewChild<ElementRef<HTMLButtonElement>>('saveButton');
 
   /** Membres saisis, dans l'ordre de saisie. */
   protected readonly members = signal<string[]>([]);
@@ -82,14 +88,11 @@ export class TeamEditor {
     validators: [fromDomain(validateTeamName)],
   });
 
-  protected readonly memberName = new FormControl('', {
-    nonNullable: true,
-    validators: [fromDomain((value) => validateMemberName(value, this.members()))],
-  });
+  protected readonly memberName = new FormControl('', { nonNullable: true });
 
   constructor() {
     // À l'arrivée sur l'écran, le focus va au titre : le lecteur d'écran annonce le nouvel écran.
-    afterNextRender(() => this.title()?.nativeElement.focus());
+    afterNextRender(() => this.title()?.nativeElement.focus(), { injector: this.injector });
 
     const team = this.teamId ? this.store.find(this.teamId) : undefined;
     if (team) {
@@ -101,7 +104,7 @@ export class TeamEditor {
 
   protected readonly heading = computed(() => (this.isEdit ? "Modifier l'équipe" : 'Nouvelle équipe'));
 
-  /** Annuler : en modification, retour à la présentation ; en création, retour à « Mes équipes ». */
+  /** Annuler : en modification, retour à la présentation ; en création, retour à « Mes équipes » (D49). */
   protected cancel(): void {
     if (this.isEdit) {
       this.router.navigate(['/equipe', this.teamId]);
@@ -110,13 +113,14 @@ export class TeamEditor {
     }
   }
 
+  /** Échap : annule en modification (sans dialogue ouvert), sans effet en création. */
   protected onEscape(): void {
-    if (this.isEdit) {
+    if (this.isEdit && this.pendingRemoval() === null) {
       this.cancel();
     }
   }
 
-  /** Message à afficher pour un champ, seulement après qu'il a été quitté. */
+  /** Message à afficher pour le nom, seulement après qu'il a été quitté. */
   protected errorOf(control: AbstractControl): string | null {
     if (!control.touched || control.valid) {
       return null;
@@ -129,10 +133,10 @@ export class TeamEditor {
     if (this.isFull()) {
       return `Une équipe ne peut pas dépasser ${MAX_MEMBERS} membres.`;
     }
-    if (!this.memberAttempted() || this.memberName.valid) {
+    if (!this.memberAttempted()) {
       return null;
     }
-    return (this.memberName.errors?.['message'] as string | undefined) ?? null;
+    return validateMemberName(this.memberName.value, this.members());
   }
 
   /** Premier motif qui empêche l'enregistrement, dans l'ordre de l'écran ; null si tout est bon. */
@@ -153,6 +157,7 @@ export class TeamEditor {
   /**
    * Clic (ou Entrée) sur « Enregistrer l'équipe » alors qu'il est inactif :
    * les erreurs s'affichent et le focus va sur le premier champ fautif.
+   * Un enregistrement qui retire un membre demande d'abord confirmation (S22).
    */
   protected onSave(): void {
     if (!this.canSave()) {
@@ -164,7 +169,23 @@ export class TeamEditor {
       }
       return;
     }
+    const removed = this.savedMembers.filter((member) => !this.members().includes(member));
+    if (removed.length > 0) {
+      this.pendingRemoval.set(removed);
+      return;
+    }
+    this.save();
+  }
 
+  /** « Revenir » dans le dialogue 6.2 : rien n'est perdu, le focus retourne sur « Enregistrer l'équipe ». */
+  protected cancelRemoval(): void {
+    this.pendingRemoval.set(null);
+    afterNextRender(() => this.saveButton()?.nativeElement.focus(), { injector: this.injector });
+  }
+
+  /** Écrit l'équipe et ouvre sa présentation (c). */
+  protected save(): void {
+    this.pendingRemoval.set(null);
     const saved = this.store.save({
       id: this.teamId ?? undefined,
       name: normalizeSpaces(this.name.value),
@@ -177,17 +198,20 @@ export class TeamEditor {
     this.router.navigate(['/equipe', saved.id], { state: { saved: true } });
   }
 
+  /**
+   * Ajoute un prénom en fin de liste : espaces retirés, première lettre en majuscule (S23), puis contrôles.
+   * Un prénom refusé reste dans le champ, avec son message.
+   */
   protected addMember(): void {
     this.memberAttempted.set(true);
-    this.memberName.updateValueAndValidity();
-    if (this.memberName.invalid) {
+    const name = capitalizeFirst(normalizeSpaces(this.memberName.value));
+    if (validateMemberName(name, this.members()) !== null) {
       this.memberField().nativeElement.focus();
       return;
     }
-    this.members.update((list) => [...list, normalizeSpaces(this.memberName.value)]);
+    this.members.update((list) => [...list, name]);
     this.syncMemberInput();
     this.memberName.setValue('');
-    this.memberName.markAsUntouched();
     this.memberAttempted.set(false);
     this.focusAfterAdd();
   }

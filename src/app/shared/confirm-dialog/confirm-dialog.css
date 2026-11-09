@@ -1,0 +1,10 @@
+/* Action destructive pleine : fond rouge du thème, texte --color-on-fill (contraste en clair et en sombre). */
+.btn-destructive-fill {
+  background: var(--color-destructive-fill);
+  color: var(--color-on-fill);
+}
+
+.btn-destructive-fill:hover:not(:disabled) {
+  background: var(--color-destructive-fill);
+  filter: brightness(0.95);
+}

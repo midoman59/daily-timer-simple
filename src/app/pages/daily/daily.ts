@@ -1,9 +1,7 @@
 import {
   Component,
   ElementRef,
-  HostListener,
   Injector,
-  OnDestroy,
   afterNextRender,
   computed,
   effect,
@@ -14,32 +12,36 @@ import {
 import { Router } from '@angular/router';
 import { isFinished } from '../../domain/daily-run';
 import { DailyTimerService } from '../../services/daily-timer.service';
+import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 
 /**
- * Écran (e) : la Daily et son chronomètre. Le chronomètre part seulement quand la Daily a été lancée
- * depuis la préparation ; quitter l'écran arrête la Daily (aucune reprise seule, décision D28).
+ * Écran (e) : la Daily et son chronomètre. Le chronomètre part au clic « Commencer la Daily » (d).
+ * La Daily ne se termine que par « Terminer la Daily », qui ouvre le bilan (f). Une Daily en cours
+ * reste enregistrée : à la réouverture, elle est figée jusqu'à « Reprendre la Daily ».
  */
 @Component({
   selector: 'app-daily',
+  imports: [ConfirmDialog],
   templateUrl: './daily.html',
   styleUrl: './daily.css',
 })
-export class Daily implements OnDestroy {
+export class Daily {
   protected readonly timer = inject(DailyTimerService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
 
-  /** Confirmation avant arrêt, affichée dans un dialogue. */
-  protected readonly confirming = signal(false);
+  /** Dialogue ouvert : arrêt depuis le bouton, ou garde de sortie. */
+  protected readonly confirm = this.timer.confirm;
 
   /** Message lu une seule fois par les lecteurs d'écran : démarrage, dépassement. */
   protected readonly announcement = signal('');
 
+  /** Bandeau de pause : la Daily est figée et aucun dialogue n'est ouvert. */
+  protected readonly held = computed(() => this.timer.paused() && this.confirm() === null);
+
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
   private readonly primaryButton = viewChild<ElementRef<HTMLButtonElement>>('primaryButton');
   private readonly stopTrigger = viewChild<ElementRef<HTMLButtonElement>>('stopTrigger');
-  private readonly continueButton = viewChild<ElementRef<HTMLButtonElement>>('continueButton');
-  private readonly confirmStopButton = viewChild<ElementRef<HTMLButtonElement>>('confirmStop');
 
   /** Membre dont le dépassement a déjà été annoncé : une seule annonce par membre. */
   private overrunAnnouncedFor = -1;
@@ -73,7 +75,7 @@ export class Daily implements OnDestroy {
     afterNextRender(() => this.heading()?.nativeElement.focus(), { injector: this.injector });
 
     const first = this.timer.current();
-    if (first) {
+    if (first && !this.timer.paused()) {
       this.announcement.set(`Daily démarrée, la parole est à ${first.name}`);
     }
 
@@ -86,100 +88,65 @@ export class Daily implements OnDestroy {
     });
   }
 
-  /**
-   * Quitter l'écran sans passer par « Arrêter » (retour arrière, changement de route) arrête la Daily.
-   * Le chronomètre ne continue jamais hors de l'écran, et ne reprend pas seul.
-   */
-  ngOnDestroy(): void {
-    this.timer.stop();
+  /** « Reprendre la Daily » : seul clic qui relance le décompte après une reprise. */
+  protected resume(): void {
+    this.timer.resume();
+    afterNextRender(() => this.primaryButton()?.nativeElement.focus(), { injector: this.injector });
   }
 
-  /** « Passer au suivant », ou « Terminer la Daily » au dernier membre. */
-  protected primary(): void {
+  /** « Suivant », ou « Terminer la Daily » au dernier membre. */
+  protected advance(): void {
     if (this.endsDaily()) {
-      this.endDaily();
+      this.finish();
       return;
     }
     this.timer.next();
   }
 
-  /** « Passer ce membre » (celui qui parle) ou « Passer » sur une ligne (membre à venir). */
+  /** « Passer ce membre » (celui qui parle, sauf le dernier) ou « Passer » sur une ligne. */
   protected pass(index: number): void {
     this.timer.pass(index);
     // Une ligne passée disparaît : le focus va à l'action principale, pour ne pas se perdre.
     afterNextRender(() => this.primaryButton()?.nativeElement.focus(), { injector: this.injector });
   }
 
-  /** Termine la Daily et revient à la présentation de l'équipe. */
-  protected endDaily(): void {
+  /** Termine la Daily et ouvre le bilan de cette équipe. */
+  protected finish(): void {
+    const teamId = this.timer.session()?.teamId;
+    this.timer.finish();
+    this.router.navigate(teamId ? ['/equipe', teamId, 'bilan'] : ['/equipes']);
+  }
+
+  protected askStop(): void {
+    this.timer.askStop();
+  }
+
+  /** « Continuer » : le dialogue se ferme, le décompte reprend s'il tournait. */
+  protected keepDaily(): void {
+    const kind = this.confirm()?.kind;
+    this.timer.cancelConfirm();
+    afterNextRender(
+      () => (kind === 'stop' ? this.stopTrigger() : this.primaryButton())?.nativeElement.focus(),
+      { injector: this.injector },
+    );
+  }
+
+  /** « Arrêter » dans le dialogue d'arrêt : la Daily est effacée, retour à la présentation. */
+  protected stopDaily(): void {
     const teamId = this.timer.session()?.teamId;
     this.timer.stop();
     this.router.navigate(teamId ? ['/equipe', teamId] : ['/equipes']);
   }
 
-  protected askStop(): void {
-    this.confirming.set(true);
-    afterNextRender(() => this.continueButton()?.nativeElement.focus(), { injector: this.injector });
-  }
-
-  protected continueDaily(): void {
-    this.confirming.set(false);
-    afterNextRender(() => this.stopTrigger()?.nativeElement.focus(), { injector: this.injector });
-  }
-
-  protected stopDaily(): void {
-    this.endDaily();
-  }
-
-  /**
-   * Focus hors du dialogue pendant la confirmation (clic sur le voile, focus sur BODY) : Tab et Maj+Tab
-   * ramènent le focus dans le dialogue, au lieu de laisser le navigateur atteindre le fond. Échap ferme
-   * aussi la confirmation (= Continuer), même sans focus dans le dialogue.
-   */
-  @HostListener('document:keydown', ['$event'])
-  protected onDocumentKeydown(event: KeyboardEvent): void {
-    if (!this.confirming() || (event.key !== 'Tab' && event.key !== 'Escape')) {
-      return;
-    }
-    const first = this.continueButton()?.nativeElement;
-    const last = this.confirmStopButton()?.nativeElement;
-    if (!first || !last) {
-      return;
-    }
-    const dialog = first.closest('[role="alertdialog"]');
-    if (dialog?.contains(document.activeElement)) {
-      return; // Déjà dans le dialogue : onDialogKeydown gère le piège et Échap.
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.continueDaily();
-      return;
-    }
-    event.preventDefault();
-    (event.shiftKey ? last : first).focus();
-  }
-
-  /** Dans le dialogue : Échap = Continuer, Tab reste piégé entre les deux boutons. */
-  protected onDialogKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.continueDaily();
-      return;
-    }
-    if (event.key !== 'Tab') {
-      return;
-    }
-    const first = this.continueButton()?.nativeElement;
-    const last = this.confirmStopButton()?.nativeElement;
-    if (!first || !last) {
-      return;
-    }
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
+  /** « Arrêter » dans la garde de sortie : la Daily est effacée, puis la navigation demandée se fait. */
+  protected leaveDaily(): void {
+    const request = this.confirm();
+    const teamId = this.timer.session()?.teamId;
+    this.timer.stop();
+    if (request?.kind === 'leave') {
+      this.router.navigateByUrl(request.url);
+    } else {
+      this.router.navigate(teamId ? ['/equipe', teamId] : ['/equipes']);
     }
   }
 }

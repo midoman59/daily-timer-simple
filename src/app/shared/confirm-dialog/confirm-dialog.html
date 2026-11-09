@@ -1,0 +1,33 @@
+<div class="scrim">
+  <div
+    #dialog
+    class="dialog"
+    role="alertdialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+    [attr.aria-describedby]="descId"
+  >
+    <h2 [id]="titleId" class="dialog-title">{{ title() }}</h2>
+    <p [id]="descId" class="dialog-text">{{ description() }}</p>
+    <div class="dialog-actions">
+      <button
+        #safeButton
+        type="button"
+        class="btn"
+        [class.btn-primary]="safeTone() === 'primary'"
+        [class.btn-secondary]="safeTone() !== 'primary'"
+        (click)="safe.emit()"
+      >{{ safeLabel() }}</button>
+      <button
+        #actionButton
+        type="button"
+        class="btn"
+        [class.btn-primary]="actionTone() !== 'destructive-text'"
+        [class.btn-destructive-fill]="actionTone() === 'destructive-fill'"
+        [class.btn-secondary]="actionTone() === 'destructive-text'"
+        [class.btn-danger]="actionTone() === 'destructive-text'"
+        (click)="action.emit()"
+      >{{ actionLabel() }}</button>
+    </div>
+  </div>
+</div>

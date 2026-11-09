@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
-import { ActivatedRouteSnapshot, Router, Routes } from '@angular/router';
+import { ActivatedRouteSnapshot, CanDeactivateFn, Router, Routes } from '@angular/router';
+import { Bilan } from './pages/bilan/bilan';
 import { Daily } from './pages/daily/daily';
 import { MyTeams } from './pages/my-teams/my-teams';
 import { Presentation } from './pages/presentation/presentation';
@@ -18,12 +19,31 @@ const teamExists = (route: ActivatedRouteSnapshot) =>
   inject(TeamStore).find(route.paramMap.get('id') ?? '') !== undefined || inject(Router).parseUrl('/');
 
 /**
- * Protège l'écran de la Daily : il ne s'ouvre que si une Daily de cette équipe est en cours.
- * Un rechargement de la page renvoie donc à la présentation, sans relancer le chronomètre.
+ * Protège l'écran de la Daily : il ne s'ouvre que si une Daily de cette équipe est en cours
+ * (en cours, ou reprise figée après rechargement).
  */
 const dailyRunning = (route: ActivatedRouteSnapshot) => {
   const id = route.paramMap.get('id') ?? '';
   return inject(DailyTimerService).session()?.teamId === id || inject(Router).parseUrl(`/equipe/${id}`);
+};
+
+/** Protège le bilan : il ne s'ouvre qu'après la fin de la Daily de cette équipe (D56). */
+const bilanReady = (route: ActivatedRouteSnapshot) => {
+  const id = route.paramMap.get('id') ?? '';
+  return inject(DailyTimerService).report()?.teamId === id || inject(Router).parseUrl(`/equipe/${id}`);
+};
+
+/**
+ * Garde de sortie (S28) : pendant une Daily, quitter l'écran ouvre le dialogue « Quitter la Daily ? ».
+ * La navigation attend la réponse : « Continuer » la annule, « Arrêter » la poursuit.
+ */
+export const leaveDaily: CanDeactivateFn<Daily> = (_component, _route, _state, nextState) => {
+  const timer = inject(DailyTimerService);
+  if (timer.session() === null) {
+    return true;
+  }
+  timer.askLeave(nextState?.url ?? '/equipes');
+  return false;
 };
 
 export const routes: Routes = [
@@ -34,6 +54,7 @@ export const routes: Routes = [
   { path: 'equipe/:id', component: Presentation, canActivate: [teamExists] },
   { path: 'equipe/:id/modifier', component: TeamEditor, canActivate: [teamExists] },
   { path: 'equipe/:id/preparer', component: Preparation, canActivate: [teamExists] },
-  { path: 'equipe/:id/daily', component: Daily, canActivate: [dailyRunning] },
+  { path: 'equipe/:id/daily', component: Daily, canActivate: [dailyRunning], canDeactivate: [leaveDaily] },
+  { path: 'equipe/:id/bilan', component: Bilan, canActivate: [bilanReady] },
   { path: '**', redirectTo: home },
 ];

@@ -1,4 +1,4 @@
-<main class="screen" (keydown.escape)="onEscape()">
+<main class="screen" (keydown.escape)="onEscape()" [attr.inert]="pendingRemoval() ? '' : null">
   @if (isEdit) {
     <a class="back-link" routerLink="/equipes">‹ Mes équipes</a>
   }
@@ -102,12 +102,9 @@
   }
 
   <div class="action-bar">
-    @if (isEdit) {
-      <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
-    } @else if (hasTeams) {
-      <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
-    }
+    <button type="button" class="btn btn-secondary" (click)="cancel()">Annuler</button>
     <button
+      #saveButton
       type="button"
       class="btn btn-primary"
       [attr.aria-disabled]="canSave() ? null : 'true'"
@@ -119,3 +116,16 @@
     </button>
   </div>
 </main>
+
+@if (pendingRemoval(); as removed) {
+  <app-confirm-dialog
+    title="Enregistrer la modification ?"
+    [description]="'Cette modification retire ' + removed.join(', ') + ' de l\'équipe.'"
+    safeLabel="Revenir"
+    actionLabel="Enregistrer"
+    safeTone="secondary"
+    actionTone="primary"
+    (safe)="cancelRemoval()"
+    (action)="save()"
+  />
+}

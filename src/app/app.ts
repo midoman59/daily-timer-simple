@@ -25,6 +25,8 @@ export function screenDepth(url: string): number | null {
       return 3;
     case 'daily':
       return 4;
+    case 'bilan':
+      return 5;
     default:
       return null;
   }

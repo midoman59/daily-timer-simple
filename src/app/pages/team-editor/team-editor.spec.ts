@@ -119,14 +119,30 @@ describe('TeamEditor (S3 à S7 : création et modification sans durée)', () => 
       expect(router.url).toBe(`/equipe/${saved.id}`);
     });
 
-    it('propose Annuler vers « Mes équipes » seulement s\'il existe déjà une équipe', async () => {
+    it('propose toujours Annuler, qui ramène à « Mes équipes » (D49)', async () => {
       const { harness, el } = await open('/equipe/nouvelle');
-      expect(button(el, 'Annuler')).toBeUndefined();
-      TestBed.inject(TeamStore).save({ name: 'Existante', members: ['Léa', 'Tom'] });
-      await harness.navigateByUrl('/equipes');
-      await harness.navigateByUrl('/equipe/nouvelle');
-      harness.fixture.detectChanges();
       expect(button(el, 'Annuler')).toBeDefined();
+      button(el, 'Annuler').click();
+      await harness.fixture.whenStable();
+      expect(TestBed.inject(Router).url).toBe('/equipes');
+    });
+
+    it('met en majuscule la première lettre de chaque prénom ajouté, sans toucher au reste (S23)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'jean-pierre');
+      await addMember(harness, el, 'élodie');
+      await addMember(harness, el, 'MARIE');
+      const names = Array.from(el.querySelectorAll('.member-list .row-title')).map((node) => node.textContent?.trim());
+      expect(names).toEqual(['Jean-pierre', 'Élodie', 'MARIE']);
+    });
+
+    it('refuse un doublon sans tenir compte de la casse, et garde la saisie (S24)', async () => {
+      const { harness, el } = await open('/equipe/nouvelle');
+      await addMember(harness, el, 'Thomas');
+      await addMember(harness, el, 'thomas');
+      expect(el.querySelectorAll('.member-list .row-title').length).toBe(1);
+      expect(el.textContent).toContain('Ce prénom existe déjà dans l\'équipe.');
+      expect(input(el, 'member-name').value).toBe('thomas');
     });
 
     it('garde le focus dans la liste après le 15e membre (B1)', async () => {
@@ -199,6 +215,29 @@ describe('TeamEditor (S3 à S7 : création et modification sans durée)', () => 
       await harness.fixture.whenStable();
       expect(TestBed.inject(Router).url).toBe(`/equipe/${team.id}`);
       expect(store.find(team.id)?.name).toBe('Équipe Beta');
+    });
+
+    it('retirer un membre demande confirmation avant l\'enregistrement, et « Revenir » ne perd rien (S22)', async () => {
+      const store = TestBed.inject(TeamStore);
+      const team = store.save({ name: 'Équipe Gamma', members: ['Ana', 'Ben', 'Cam'] })!;
+      const { harness, el } = await open(`/equipe/${team.id}/modifier`);
+      el.querySelector<HTMLButtonElement>('button[aria-label="Supprimer Ben"]')!.click();
+      harness.fixture.detectChanges();
+      button(el, "Enregistrer l'équipe").click();
+      harness.fixture.detectChanges();
+      expect(el.querySelector('[role="alertdialog"]')?.textContent).toContain("Cette modification retire Ben de l'équipe.");
+      expect(store.find(team.id)?.members).toEqual(['Ana', 'Ben', 'Cam']);
+
+      button(el, 'Revenir').click();
+      harness.fixture.detectChanges();
+      expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+      expect(store.find(team.id)?.members).toEqual(['Ana', 'Ben', 'Cam']);
+
+      button(el, "Enregistrer l'équipe").click();
+      harness.fixture.detectChanges();
+      button(el, 'Enregistrer').click();
+      await harness.fixture.whenStable();
+      expect(store.find(team.id)?.members).toEqual(['Ana', 'Cam']);
     });
 
     it('Échap équivaut à Annuler en modification', async () => {

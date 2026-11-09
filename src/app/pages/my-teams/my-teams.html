@@ -1,14 +1,13 @@
-<main class="screen">
-  <header class="screen-head">
-    <h1 #title class="screen-title" tabindex="-1">Mes équipes</h1>
-    <a class="btn btn-primary head-action" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
-  </header>
+<main class="screen" [attr.inert]="pendingDelete() ? '' : null">
+  <h1 #title class="screen-title" tabindex="-1">Mes équipes</h1>
 
   @if (store.readError()) {
     <p class="banner banner-error" role="alert">
       <span class="banner-text">Certaines données de l'équipe sont illisibles. Recréez l'équipe.</span>
     </p>
   }
+
+  <a #newButton class="btn btn-primary create-button" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
 
   @if (store.sortedTeams().length > 0) {
     <ul class="group">
@@ -19,14 +18,29 @@
             <span class="row-meta">{{ memberCountLabel(team.members.length) }}</span>
           </div>
           <a class="btn btn-secondary btn-compact" [routerLink]="['/equipe', team.id]" [attr.aria-label]="'Ouvrir ' + team.name">Ouvrir</a>
+          <button
+            type="button"
+            class="btn-text btn-danger btn-compact"
+            [attr.aria-label]="'Supprimer ' + team.name"
+            (click)="askDelete(team, $event.currentTarget)"
+          >Supprimer</button>
         </li>
       }
     </ul>
   } @else {
     <p class="help">Aucune équipe pour l'instant.</p>
   }
-
-  <div class="action-bar">
-    <a class="btn btn-primary bar-only" routerLink="/equipe/nouvelle">Nouvelle équipe</a>
-  </div>
 </main>
+
+@if (pendingDelete(); as team) {
+  <app-confirm-dialog
+    [title]="'Supprimer l\'équipe « ' + team.name + ' » ?'"
+    [description]="'Les ' + team.members.length + ' membres de l\'équipe seront supprimés. Cette action est définitive.'"
+    safeLabel="Annuler"
+    actionLabel="Supprimer l'équipe"
+    safeTone="secondary"
+    actionTone="destructive-fill"
+    (safe)="cancelDelete()"
+    (action)="confirmDelete()"
+  />
+}

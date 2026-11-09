@@ -1,0 +1,48 @@
+@if (report(); as report) {
+  <main class="screen">
+    <h1 #title class="screen-title" tabindex="-1">Bilan de la Daily</h1>
+    <p class="meta">{{ report.teamName }}</p>
+    <p class="summary" [class.is-warning]="overrunCount() > 0">{{ summary() }}</p>
+
+    <div class="group">
+      <ol class="report-list" aria-label="Bilan par membre">
+        @for (row of report.rows; track $index; let i = $index) {
+          <li class="report-row">
+            <div class="report-who">
+              <span class="row-order">{{ i + 1 }}</span>
+              <span class="row-title">{{ row.name }}</span>
+              <span class="row-status" [class.is-passed]="row.passed">{{ row.passed ? 'passé' : 'parlé' }}</span>
+            </div>
+            <dl class="report-times">
+              <div>
+                <dt>Parlé</dt>
+                <dd>{{ clock(row.passed ? null : row.spokenSeconds) }}</dd>
+              </div>
+              <div>
+                <dt>Alloué</dt>
+                <dd>{{ clock(row.passed ? null : row.allottedSeconds) }}</dd>
+              </div>
+              <div>
+                <dt>Dépassement</dt>
+                <dd [class.is-overrun]="row.overrunSeconds > 0">
+                  {{ row.overrunSeconds > 0 ? '+' + clock(row.overrunSeconds) : '—' }}
+                </dd>
+              </div>
+            </dl>
+          </li>
+        }
+      </ol>
+    </div>
+
+    @if (copyMessage(); as message) {
+      <p class="banner" [class.banner-success]="message.kind === 'status'" [class.banner-error]="message.kind === 'alert'" [attr.role]="message.kind === 'alert' ? 'alert' : 'status'">
+        <span class="banner-text">{{ message.text }}</span>
+      </p>
+    }
+
+    <div class="action-bar report-actions">
+      <button type="button" class="btn btn-text" (click)="copy()">Copier le bilan</button>
+      <button type="button" class="btn btn-primary" (click)="back()">Retour à l'équipe</button>
+    </div>
+  </main>
+}

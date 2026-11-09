@@ -1,9 +1,15 @@
 @if (timer.session(); as session) {
-  <main class="screen daily" [attr.inert]="confirming() ? '' : null">
+  <main class="screen daily" [attr.inert]="confirm() ? '' : null">
     <header class="daily-head">
       <h1 #heading class="daily-team" tabindex="-1">{{ session.teamName }}</h1>
       <p class="meta">{{ modeLabel() }}</p>
     </header>
+
+    @if (held()) {
+      <p class="banner banner-pause" role="status">
+        <span class="banner-text">Daily en pause. Le décompte reprend au clic sur « Reprendre la Daily ».</span>
+      </p>
+    }
 
     <section class="clock-area">
       <p class="current-name">{{ timer.current()?.name ?? 'Daily terminée' }}</p>
@@ -14,17 +20,15 @@
         role="timer"
         [attr.aria-label]="clockLabel()"
         [class.is-overrun]="timer.isOverrun()"
-      >{{ timer.countdown() }}</p>
+      >{{ timer.isOverrun() ? '+' + timer.overrunLabel() : timer.countdown() }}</p>
 
       <p class="planned">
-        @if (timer.isOverrun()) {
-          <span class="overrun-value">+{{ timer.overrunLabel() }}</span>
-        } @else if (timer.current(); as slot) {
+        @if (!timer.isOverrun() && timer.current(); as slot) {
           Temps prévu : {{ slot.allottedSeconds / 60 }}:00
         }
       </p>
 
-      @if (timer.current()) {
+      @if (timer.current() && !isLast()) {
         <button type="button" class="btn btn-secondary btn-compact" (click)="pass(currentIndex())">Passer ce membre</button>
       }
     </section>
@@ -59,33 +63,42 @@
     </ol>
 
     <div class="action-bar daily-actions">
-      <button #primaryButton type="button" class="btn btn-primary" (click)="primary()">
-        {{ endsDaily() ? 'Terminer la Daily' : 'Passer au suivant' }}
-      </button>
+      @if (held()) {
+        <button #primaryButton type="button" class="btn btn-primary" (click)="resume()">Reprendre la Daily</button>
+        <button type="button" class="btn btn-secondary" (click)="advance()">{{ endsDaily() ? 'Terminer la Daily' : 'Suivant' }}</button>
+      } @else {
+        <button #primaryButton type="button" class="btn btn-primary" (click)="advance()">{{ endsDaily() ? 'Terminer la Daily' : 'Suivant' }}</button>
+      }
       <button #stopTrigger type="button" class="btn btn-text btn-danger" (click)="askStop()">Arrêter la Daily</button>
     </div>
 
     <p class="sr-only" role="status">{{ announcement() }}</p>
   </main>
 
-  <!-- Hors de <main> : celui-ci devient inerte pendant la confirmation (focus piégé dans le dialogue). -->
-  @if (confirming()) {
-    <div class="scrim">
-      <div
-        class="dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="stop-title"
-        aria-describedby="stop-desc"
-        (keydown)="onDialogKeydown($event)"
-      >
-        <h2 id="stop-title" class="dialog-title">Arrêter la Daily ?</h2>
-        <p id="stop-desc" class="dialog-text">Le chronomètre s'arrêtera. Aucune Daily ne sera enregistrée.</p>
-        <div class="dialog-actions">
-          <button #continueButton type="button" class="btn btn-primary" (click)="continueDaily()">Continuer</button>
-          <button #confirmStop type="button" class="btn btn-secondary btn-danger" (click)="stopDaily()">Arrêter</button>
-        </div>
-      </div>
-    </div>
+  <!-- Hors de <main> : celui-ci devient inerte pendant un dialogue (focus piégé dans le dialogue). -->
+  @if (confirm(); as request) {
+    @if (request.kind === 'leave') {
+      <app-confirm-dialog
+        title="Quitter la Daily ?"
+        description="La Daily sera arrêtée et sa progression perdue."
+        safeLabel="Continuer"
+        actionLabel="Arrêter"
+        safeTone="primary"
+        actionTone="destructive-text"
+        (safe)="keepDaily()"
+        (action)="leaveDaily()"
+      />
+    } @else {
+      <app-confirm-dialog
+        title="Arrêter la Daily ?"
+        description="La Daily sera arrêtée. Elle n'est pas conservée."
+        safeLabel="Continuer"
+        actionLabel="Arrêter"
+        safeTone="primary"
+        actionTone="destructive-text"
+        (safe)="keepDaily()"
+        (action)="stopDaily()"
+      />
+    }
   }
 }

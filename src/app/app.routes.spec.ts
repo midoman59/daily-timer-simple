@@ -39,6 +39,7 @@ describe('Routes (S1 : accueil selon les équipes, S9 : rechargement)', () => {
       'equipe/:id/modifier',
       'equipe/:id/preparer',
       'equipe/:id/daily',
+      'equipe/:id/bilan',
       '**',
     ]);
   });
